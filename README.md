@@ -1,6 +1,6 @@
 # Sistema de Testes GIFT
 
-Aplicação para praticar perguntas em formato GIFT com interface Qt6.
+Aplicação para praticar perguntas em formato GIFT com possibilidade de explicar as respostas via serviços de IA.
 
 ## Dependências
 
@@ -21,27 +21,6 @@ sudo pacman -S python-pyqt6 python-pyqt6-webengine
 pip install -r requirements.txt
 ```
 
-## Packaging e Distribuição
-
-Para criar instaladores executáveis para Windows e Linux:
-
-1. Instale PyInstaller:
-   ```bash
-   pip install pyinstaller
-   ```
-
-2. Crie o executável:
-   ```bash
-   pyinstaller --onefile --windowed gift_test_practice.py
-   ```
-
-   - `--onefile`: Cria um único arquivo executável.
-   - `--windowed`: Para GUI (sem console no Windows).
-
-3. O executável será gerado em `dist/`.
-
-Para distribuições Linux, considere também AppImage ou pacotes .deb/.rpm usando ferramentas como `fpm`.
-
 ## Executar
 
 ```bash
@@ -57,8 +36,9 @@ python gift_test_practice.py
 - Zoom no conteúdo da explicação (Ctrl + roda do rato, Ctrl +/-, Ctrl + 0)
 
 ## Configuração LLM
-- Aceda a "Configurações" → LLM
-- Provedores: Groq, Hugging Face, Google Gemini, Mistral, Perplexity OpenRouter, Cloudflare
+- Aceder a "Configurações" → LLM
+- Configurar uma API_KEY (precisa de registo prévio, quase todos oferecem acessos free tier)
+- Providers: Groq, Hugging Face, Google Gemini, Mistral, Perplexity, OpenRouter, Cloudflare
 - Prompt padrão gera HTML formatado
 - API keys guardadas localmente em `data/preferences.json`
 
