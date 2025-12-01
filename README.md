@@ -50,8 +50,7 @@ python gift_test_practice.py
 
 ## Funcionalidades
 - Seleção de categorias e número de perguntas
-- Explicação de perguntas via LLM (Groq, Hugging Face, Gemini)
-- Suporte adicional (experimental) a Mistral, Perplexity, OpenRouter (chat compatível)
+- Explicação de perguntas via LLM (Groq, Hugging Face, Gemini, Mistral, Perplexity, OpenRouter )
 - Configurações para ficheiro GIFT, provedor/modelo LLM e prompt
 - Resultados com estatísticas e histórico
 - Renderização HTML rica com QWebEngineView
