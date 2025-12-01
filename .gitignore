@@ -1,0 +1,10 @@
+http_log.txt
+__pycache__/
+data/__pycache__/
+data/preferences.json
+data/test_history.json
+llm_tests.html
+.venv
+*.gift.txt
+.gitbackup.tgz
+.git
