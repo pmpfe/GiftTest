@@ -142,7 +142,7 @@ def main():
         
     except FileNotFoundError:
         print(f"❌ Erro: Ficheiro '{gift_file}' não encontrado!")
-        print("Execute primeiro: python pdf_to_gift_v2.py")
+        
     except Exception as e:
         print(f"❌ Erro ao validar ficheiro: {e}")
 

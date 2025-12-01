@@ -18,8 +18,29 @@ sudo pacman -S python-pyqt6 python-pyqt6-webengine
 
 **Outras distros / venv:**
 ```bash
-pip install PyQt6 PyQt6-WebEngine
+pip install -r requirements.txt
 ```
+
+## Packaging e Distribuição
+
+Para criar instaladores executáveis para Windows e Linux:
+
+1. Instale PyInstaller:
+   ```bash
+   pip install pyinstaller
+   ```
+
+2. Crie o executável:
+   ```bash
+   pyinstaller --onefile --windowed gift_test_practice.py
+   ```
+
+   - `--onefile`: Cria um único arquivo executável.
+   - `--windowed`: Para GUI (sem console no Windows).
+
+3. O executável será gerado em `dist/`.
+
+Para distribuições Linux, considere também AppImage ou pacotes .deb/.rpm usando ferramentas como `fpm`.
 
 ## Executar
 
@@ -38,7 +59,7 @@ python gift_test_practice.py
 
 ## Configuração LLM
 - Aceda a "Configurações" → LLM
-- Provedores: Groq, Hugging Face, Google Gemini, Mistral, Perplexity, OpenRouter, Cloudflare (geração Cloudflare não implementada)
+- Provedores: Groq, Hugging Face, Google Gemini, Mistral, Perplexity OpenRouter, Cloudflare
 - Prompt padrão gera HTML formatado
 - API keys guardadas localmente em `data/preferences.json`
 
