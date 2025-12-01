@@ -50,7 +50,7 @@ python gift_test_practice.py
 - `data/settings_screen.py`: configurações (ficheiro, LLM)
 - `data/explanation_viewer.py`: visualizador HTML
 - `data/gift_parser.py`: parser de ficheiros GIFT
-- `data/llm_client.py`: cliente LLM (Groq/HF/Gemini)
+- `data/llm_client.py`: cliente LLM (multiplos providers)
 - `data/preferences.py`: persistência de configurações
 - `data/test_logger.py`: histórico de testes
 - `data/literatura-classica-50.gift.txt`: exemplo de dataset (50 perguntas)
