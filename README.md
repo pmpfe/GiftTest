@@ -53,7 +53,7 @@ python gift_test_practice.py
 - `data/llm_client.py`: cliente LLM (Groq/HF/Gemini)
 - `data/preferences.py`: persistência de configurações
 - `data/test_logger.py`: histórico de testes
-- `data/literatura-classica-50.gift.txt`: exemplo de dataset (768 perguntas)
+- `data/literatura-classica-50.gift.txt`: exemplo de dataset (50 perguntas)
 
 ## Notas
 - Interface Qt6 moderna
