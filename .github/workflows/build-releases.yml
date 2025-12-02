@@ -145,11 +145,15 @@ jobs:
       - name: Create DEB package
         run: |
           VERSION="${GITHUB_REF#refs/tags/v}"
-          if [ -z "$VERSION" ]; then VERSION="0.0.1"; fi
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF" ]; then 
+            VERSION="0.0.1"
+          fi
+          echo "Building version: $VERSION"
           mkdir -p packaging/linux/deb-build/usr/bin
           mkdir -p packaging/linux/deb-build/usr/share/applications
           mkdir -p packaging/linux/deb-build/usr/share/pixmaps
           mkdir -p packaging/linux
+          chmod +x dist-linux/gift-test-practice
           cp dist-linux/gift-test-practice packaging/linux/deb-build/usr/bin/
           cp packaging/linux/gift-test-practice.desktop packaging/linux/deb-build/usr/share/applications/
           cp assets/icon.png packaging/linux/deb-build/usr/share/pixmaps/gift-test-practice.png
@@ -159,16 +163,23 @@ jobs:
             -v "$VERSION" \
             --description "GIFT Test Practice Application" \
             --maintainer "pmpfe@github" \
+            --url "https://github.com/pmpfe/GiftTest" \
+            --license "MIT" \
             -C packaging/linux/deb-build \
-            -o packaging/linux/
+            --prefix / \
+            -p packaging/linux/gift-test-practice_VERSION_ARCH.deb
       
       - name: Create RPM package
         run: |
           VERSION="${GITHUB_REF#refs/tags/v}"
-          if [ -z "$VERSION" ]; then VERSION="0.0.1"; fi
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF" ]; then 
+            VERSION="0.0.1"
+          fi
+          echo "Building version: $VERSION"
           mkdir -p packaging/linux/rpm-build/usr/bin
           mkdir -p packaging/linux/rpm-build/usr/share/applications
           mkdir -p packaging/linux/rpm-build/usr/share/pixmaps
+          chmod +x dist-linux/gift-test-practice
           cp dist-linux/gift-test-practice packaging/linux/rpm-build/usr/bin/
           cp packaging/linux/gift-test-practice.desktop packaging/linux/rpm-build/usr/share/applications/
           cp assets/icon.png packaging/linux/rpm-build/usr/share/pixmaps/gift-test-practice.png
@@ -178,8 +189,11 @@ jobs:
             -v "$VERSION" \
             --description "GIFT Test Practice Application" \
             --maintainer "pmpfe@github" \
+            --url "https://github.com/pmpfe/GiftTest" \
+            --license "MIT" \
             -C packaging/linux/rpm-build \
-            -o packaging/linux/
+            --prefix / \
+            -p packaging/linux/gift-test-practice-VERSION.ARCH.rpm
       
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
