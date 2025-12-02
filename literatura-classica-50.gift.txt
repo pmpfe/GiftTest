@@ -1,0 +1,449 @@
+::LIT_ClassicaGrega_001 [tags: topico="Mitologia Grega"]::
+O famoso enigma da Esfinge era: "O que tem quatro pernas de manhã, duas ao meio-dia e três à noite?"
+{
+    =Um ser humano (bebê, adulto, idoso com bengala)
+    ~Um cavalo
+    ~Uma ave
+    ~Um camelo
+}
+
+::LIT_ClassicaGrega_002 [tags: topico="Mitologia Grega"]::
+Qual era o prêmio para quem conseguisse resolver o enigma da Esfinge?
+{
+    =O trono de Tebas e a mão da rainha Jocasta
+    ~Ouro e prata ilimitados
+    ~A imortalidade
+    ~O poder de voar
+}
+
+::LIT_ClassicaGrega_003 [tags: topico="Mitologia Grega"]::
+Quem finalmente conseguiu resolver o enigma da Esfinge?
+{
+    =Édipo
+    ~Teseu
+    ~Héracles
+    ~Perseu
+}
+
+::LIT_ClassicaGrega_004 [tags: topico="Mitologia Grega"]::
+Na mitologia grega, qual foi o destino da Esfinge após ter seu enigma resolvido?
+{
+    =Precipitou-se de um penhasco (ou foi morta por Édipo)
+    ~Transformou-se em pedra
+    ~Voou para o Olimpo
+    ~Tornou-se invisível
+}
+
+::LIT_ClassicaGrega_005 [tags: topico="Mitologia Grega"]::
+Em que cidade grega a Esfinge aterrorizava os habitantes?
+{
+    =Tebas
+    ~Atenas
+    ~Corinto
+    ~Esparta
+}
+
+::LIT_ClassicaGrega_006 [tags: topico="Mitologia Grega"]::
+Qual é o nome do poema épico de Homero que narra a Guerra de Troia?
+{
+    =Ilíada
+    ~Odisseia
+    ~Eneida
+    ~Metamorfoses
+}
+
+::LIT_ClassicaGrega_007 [tags: topico="Mitologia Grega"]::
+Em quantos anos durou a guerra de Troia, segundo a tradição grega?
+{
+    =10 anos
+    ~5 anos
+    ~20 anos
+    ~7 anos
+}
+
+::LIT_ClassicaGrega_008 [tags: topico="Mitologia Grega"]::
+O que era o Cavalo de Troia?
+{
+    =Uma estrutura de madeira usada para infiltrar soldados gregos na cidade
+    ~Uma estátua de ouro dedicada ao deus Ares
+    ~Um animal sagrado que ninguém podia tocar
+    ~Uma cura mágica para doenças
+}
+
+::LIT_ClassicaGrega_009 [tags: topico="Mitologia Grega"]::
+Qual herói grego é o protagonista da Odisseia?
+{
+    =Odisseu (Ulisses)
+    ~Aquiles
+    ~Heitor
+    ~Ájax
+}
+
+::LIT_ClassicaGrega_010 [tags: topico="Mitologia Grega"]::
+Quantos anos Odisseu levou para regressar a Ítaca após a guerra de Troia?
+{
+    =10 anos
+    ~5 anos
+    ~15 anos
+    ~20 anos
+}
+
+::LIT_ClassicaGrega_011 [tags: topico="Mitologia Grega"]::
+A deusa Atena é conhecida como a deusa de quê?
+{
+    =Sabedoria e guerra estratégica
+    ~Beleza e amor
+    ~Caça e vida selvagem
+    ~Tecnologia e fogo
+}
+
+::LIT_ClassicaGrega_012 [tags: topico="Mitologia Grega"]::
+Qual é o nome do reino subterrâneo governado por Hades na mitologia grega?
+{
+    =Hades (ou Inferno)
+    ~Tártaro
+    ~Erebo
+    ~Averno
+}
+
+::LIT_ClassicaGrega_013 [tags: topico="Mitologia Grega"]::
+Quem é o pai de Zeus na mitologia grega?
+{
+    =Cronos
+    ~Titã Oceano
+    ~Urano
+    ~Éter
+}
+
+::LIT_ClassicaGrega_014 [tags: topico="Mitologia Grega"]::
+Qual é o símbolo característico de Poseidon?
+{
+    =O tridente
+    ~A coroa de ouro
+    ~O escudo de Medusa
+    ~O raio
+}
+
+::LIT_ClassicaGrega_015 [tags: topico="Mitologia Grega"]::
+Na Odisseia, qual é o nome da feiticeira que prende Odisseu na sua ilha?
+{
+    =Circe
+    ~Calipso
+    ~Medeia
+    ~Hécuba
+}
+
+::LIT_ClassicaGrega_016 [tags: topico="Mitologia Grega"]::
+Qual é o nome do minotauro na mitologia grega?
+{
+    =Asterião
+    ~Tifão
+    ~Equidna
+    ~Cérbero
+}
+
+::LIT_ClassicaGrega_017 [tags: topico="Mitologia Grega"]::
+Quem foi o herói grego responsável por derrotar o Minotauro no labirinto de Creta?
+{
+    =Teseu
+    ~Perseu
+    ~Héracles
+    ~Belerofontes
+}
+
+::LIT_ClassicaGrega_018 [tags: topico="Mitologia Grega"]::
+Quantos trabalhos Héracles (Hércules) teve de realizar para expiar seus crimes?
+{
+    =12
+    ~10
+    ~15
+    ~7
+}
+
+::LIT_ClassicaGrega_019 [tags: topico="Mitologia Grega"]::
+Qual famosa personagem da mitologia grega tinha serpentes no lugar dos cabelos?
+{
+    =Medusa
+    ~Circe
+    ~Hécate
+    ~Morrigan
+}
+
+::LIT_ClassicaGrega_020 [tags: topico="Mitologia Grega"]::
+Qual é a consequência de olhar para Medusa nos olhos?
+{
+    =Ser transformado em pedra
+    ~Perder a visão
+    ~Ficar maldito
+    ~Envelhecer rapidamente
+}
+
+::LIT_ClasicaLatin_021 [tags: topico="Literatura Latina"]::
+Qual poeta romano escreveu a Eneida?
+{
+    =Virgílio
+    ~Ovídio
+    ~Horácio
+    ~Tito Lívio
+}
+
+::LIT_ClassicaLatin_022 [tags: topico="Literatura Latina"]::
+A Eneida narra os feitos de qual herói após a queda de Troia?
+{
+    =Eneias
+    ~Rômulo
+    ~César
+    ~Aníbal
+}
+
+::LIT_ClassicaLatin_023 [tags: topico="Literatura Latina"]::
+De qual cidade Eneias é descendente na mitologia grega-romana?
+{
+    =Tróia
+    ~Atenas
+    ~Esparta
+    ~Roma
+}
+
+::LIT_ClassicaLatin_024 [tags: topico="Literatura Latina"]::
+Qual é a obra-prima de Ovídio na literatura latina?
+{
+    =Metamorfoses
+    ~Fascículos
+    ~Épicas de Amor
+    ~Tristia
+}
+
+::LIT_ClassicaLatin_025 [tags: topico="Literatura Latina"]::
+Que tipo de histórias as "Metamorfoses" de Ovídio contêm?
+{
+    =Transformações de humanos em animais ou plantas
+    ~Conquistas militares romanas
+    ~Filosofia estoica
+    ~Receitas culinárias
+}
+
+::LIT_Enigmas_026 [tags: topico="Enigmas Históricos"]::
+Qual é o enigma clássico: "Tenho cidades, mas sem casas; florestas, mas sem árvores; água, mas sem peixes. O que sou?"
+{
+    =Um mapa
+    ~Um quadro
+    ~Um livro
+    ~Um sonho
+}
+
+::LIT_Enigmas_027 [tags: topico="Enigmas Históricos"]::
+Qual é o enigma clássico: "Quanto mais tiras, maior fico. Quanto menos tiras, menor fico. O que sou?"
+{
+    =Um buraco
+    ~Uma vela
+    ~Uma ferida
+    ~A escuridão
+}
+
+::LIT_Enigmas_028 [tags: topico="Enigmas Históricos"]::
+Qual é o enigma clássico: "Sou leve como uma pena, mas nem o homem mais forte consegue segurar-me por mais de alguns minutos. O que sou?"
+{
+    =O ar / a respiração
+    ~Uma bolha
+    ~A névoa
+    ~Um espírito
+}
+
+::LIT_Enigmas_029 [tags: topico="Enigmas Históricos"]::
+Qual é o enigma clássico: "Tenho língua, mas não falo. Tenho cabeça, mas não penso. O que sou?"
+{
+    =Uma moeda / Um peixe
+    ~Uma boneca
+    ~Uma estátua
+    ~Um livro
+}
+
+::LIT_Enigmas_030 [tags: topico="Enigmas Históricos"]::
+Qual é o enigma clássico: "Quanto mais nós comemos, mais deixo crescer. O que sou?"
+{
+    =A saudade (ou ausência)
+    ~Um bolo
+    ~Uma planta
+    ~A ganância
+}
+
+::LIT_Personagens_031 [tags: topico="Personagens Clássicas"]::
+Qual é a esposa de Ulisses (Odisseu) na mitologia grega?
+{
+    =Penélope
+    ~Helena
+    ~Jocasta
+    ~Briseida
+}
+
+::LIT_Personagens_032 [tags: topico="Personagens Clássicas"]::
+O que Penélope fazia enquanto esperava o regresso de Ulisses?
+{
+    =Tecer um manto que desfazia à noite
+    ~Escrever cartas de amor
+    ~Guardar suas roupas
+    ~Rezar nos templos
+}
+
+::LIT_Personagens_033 [tags: topico="Personagens Clássicas"]::
+Qual é o nome do filho de Ulisses e Penélope?
+{
+    =Telémaco
+    ~Astianax
+    ~Orestes
+    ~Antíloco
+}
+
+::LIT_Personagens_034 [tags: topico="Personagens Clássicas"]::
+Qual heroe grego era famoso por ser praticamente invulnerável?
+{
+    =Aquiles
+    ~Heitor
+    ~Ájax
+    ~Diomedes
+}
+
+::LIT_Personagens_035 [tags: topico="Personagens Clássicas"]::
+Qual era o único ponto vulnerável de Aquiles?
+{
+    =O calcanhar
+    ~O peito
+    ~A cabeça
+    ~Os olhos
+}
+
+::LIT_Personagens_036 [tags: topico="Personagens Clássicas"]::
+Qual lendária rainha troiana era famosa por sua beleza?
+{
+    =Helena
+    ~Hécuba
+    ~Cassandra
+    ~Briseida
+}
+
+::LIT_Personagens_037 [tags: topico="Personagens Clássicas"]::
+Qual profetisa troiana tinha o dom de ver o futuro mas ninguém acreditava nela?
+{
+    =Cassandra
+    ~Jocasta
+    ~Ifigênia
+    ~Alceste
+}
+
+::LIT_Personagens_038 [tags: topico="Personagens Clássicas"]::
+Na mitologia grega, qual príncipe troiano era famoso por sua coragem e nobileza?
+{
+    =Heitor
+    ~Páris
+    ~Pentesiléia
+    ~Sarpedão
+}
+
+::LIT_Drama_039 [tags: topico="Drama Grego"]::
+Qual dramaturgo grego escreveu a tragédia "Édipo Rei"?
+{
+    =Sófocles
+    ~Ésquilo
+    ~Eurípides
+    ~Aristófanes
+}
+
+::LIT_Drama_040 [tags: topico="Drama Grego"]::
+Na tragédia "Édipo Rei", que crime hediondo comete Édipo sem saber?
+{
+    =Mata seu pai e casa com sua mãe
+    ~Mata seu irmão
+    ~Traça uma conspiração contra o rei
+    ~Profana um templo sagrado
+}
+
+::LIT_Drama_041 [tags: topico="Drama Grego"]::
+Qual dramaturgo grego era famoso por suas comédias satíricas?
+{
+    =Aristófanes
+    ~Agatão
+    ~Cratino
+    ~Êpulo
+}
+
+::LIT_Drama_042 [tags: topico="Drama Grego"]::
+Qual é a tragédia de Ésquilo que faz parte da trilogia "Oresteia"?
+{
+    =Agamêmnon
+    ~Prometeu Acorrentado
+    ~Os Persas
+    ~Os Sete contra Tebas
+}
+
+::LIT_Drama_043 [tags: topico="Drama Grego"]::
+Na tragédia de Ésquilo "Prometeu Acorrentado", qual deidade rouba o fogo para os humanos?
+{
+    =Prometeu
+    ~Hefesto
+    ~Apolo
+    ~Hermes
+}
+
+::LIT_Drama_044 [tags: topico="Drama Grego"]::
+Qual é a consequência da ação de Prometeu em roubar o fogo para os humanos?
+{
+    =Ser preso com correntes e atormentado por uma águia
+    ~Ser expulso do Olimpo
+    ~Perder seus poderes divinos
+    ~Ser transformado em animal
+}
+
+::LIT_Filosofia_045 [tags: topico="Filosofia Clássica"]::
+Qual filósofo grego acreditava que o conhecimento é virtude?
+{
+    =Sócrates
+    ~Platão
+    ~Aristóteles
+    ~Epicuro
+}
+
+::LIT_Filosofia_046 [tags: topico="Filosofia Clássica"]::
+Qual filósofo grego fundou a Academia em Atenas?
+{
+    =Platão
+    ~Sócrates
+    ~Aristóteles
+    ~Zenão
+}
+
+::LIT_Filosofia_047 [tags: topico="Filosofia Clássica"]::
+Qual é a obra mais famosa de Platão sobre o Estado ideal?
+{
+    =A República
+    ~As Leis
+    ~O Sofista
+    ~O Filebo
+}
+
+::LIT_Filosofia_048 [tags: topico="Filosofia Clássica"]::
+Em que consiste a Teoria das Formas de Platão?
+{
+    =Ideias imutáveis e eternas que existem num mundo transcendental
+    ~A crença de que tudo flui constantemente
+    ~A negação da existência de Deus
+    ~A busca pelo prazer como fim supremo
+}
+
+::LIT_Diversos_049 [tags: topico="Literatura Diversa"]::
+Qual obra literária é considerada a mais antiga da história?
+{
+    =A Epopeia de Gilgamesh
+    ~A Ilíada
+    ~O Código de Hamurabi
+    ~Os Vedas hindus
+}
+
+::LIT_Diversos_050 [tags: topico="Literatura Diversa"]::
+Em que língua foi originalmente escrita a Bíblia Hebraica?
+{
+    =Hebraico
+    ~Aramaico
+    ~Grego
+    ~Latim
+}

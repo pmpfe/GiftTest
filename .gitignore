@@ -6,6 +6,7 @@ data/test_history.json
 llm_tests.html
 .venv
 *.gift.txt
+!literatura-classica-50.gift.txt
 .gitbackup.tgz
 .git
 
