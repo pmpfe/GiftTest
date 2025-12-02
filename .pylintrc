@@ -1,0 +1,66 @@
+[MASTER]
+# Use multiple processes to speed up Pylint
+jobs=1
+
+# Pickle collected data for later comparisons
+persistent=yes
+
+# Files or directories to ignore
+ignore=test_llm_models.py
+
+[MESSAGES CONTROL]
+# Disable specific warnings
+disable=
+    # PyQt6 false positives - pylint cannot properly analyze PyQt6 C extensions
+    no-name-in-module,
+    # Code duplication is acceptable for UI code patterns
+    duplicate-code,
+    # Protected access is acceptable for internal GUI coordination
+    protected-access,
+    # Broad exception catching is often necessary for GUI error handling
+    broad-exception-caught,
+    # Import outside toplevel is acceptable for conditional imports and lazy loading
+    import-outside-toplevel,
+    # These are style preferences that we're relaxing
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    # Qt naming conventions don't follow snake_case (e.g., showEvent, keyPressEvent)
+    invalid-name,
+    # Allow defining attributes outside __init__ for dynamic GUI construction
+    attribute-defined-outside-init,
+    # Code complexity - we'll address these gradually
+    too-many-instance-attributes,
+    too-few-public-methods
+
+[BASIC]
+# Good variable names which should always be accepted
+good-names=i,j,k,ex,Run,_,x,y,w,h,id,ui,db,ok,fd,fs
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=100
+
+# Maximum number of lines in a module
+max-module-lines=1000
+
+[DESIGN]
+# Complexity thresholds - more lenient for GUI code
+max-args=7
+max-locals=20
+max-returns=6
+max-branches=15
+max-statements=60
+max-parents=7
+max-attributes=10
+min-public-methods=1
+max-public-methods=25
+max-bool-expr=5
+
+[IMPORTS]
+# Allow relative imports
+allow-any-import-level=yes
+
+[SIMILARITIES]
+# Minimum lines number of a similarity
+min-similarity-lines=10

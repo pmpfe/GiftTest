@@ -3,71 +3,72 @@
 Script para testar todos os modelos de todos os providers e gerar relatório HTML.
 """
 
-import sys
-import os
-import time
 import argparse
+import sys
+import time
 from pathlib import Path
 
 # Adicionar o diretório pai ao path para importar módulos locais
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+# pylint: disable=wrong-import-position
 from data.llm_client import LLMClient, LLMError
 from data.preferences import Preferences
+# pylint: enable=wrong-import-position
 
 
 def test_all_models(limit_providers=None):
     """Testa todos os modelos de todos os providers."""
     prefs = Preferences()
-    
+
     # Obter system prompt configurado
     system_prompt = prefs.get_llm_system_prompt()
-    
+
     # Pergunta de teste
     test_prompt = "Summarize in 3 bullets your functionalities and what makes you stand out as a specific version of a language model compared to others."
-    
-    results = []
-    
+
+    model_results = []
+
     # Lista de providers suportados
     providers = ["groq", "huggingface", "gemini", "mistral", "perplexity", "openrouter", "cloudflare"]
-    
+
     # Filtrar providers se especificado
     if limit_providers:
         providers = [p for p in providers if p in limit_providers]
-    
+
     for provider in providers:
         print(f"Testando provider: {provider}")
-        
+
         try:
             # Obter chave API
             api_key = prefs.get_llm_api_key(provider)
             if not api_key:
                 print(f"  Pulando {provider}: chave API não configurada")
                 continue
-            
+
             # Criar cliente com system prompt
             client = LLMClient(provider, api_key, system_prompt=system_prompt)
-            
+
             # Obter lista de modelos
             try:
                 models = client.list_models()
             except Exception as e:
                 print(f"  Erro ao obter modelos para {provider}: {e}")
                 continue
-            
+
             if not models:
                 print(f"  Nenhum modelo encontrado para {provider}")
                 continue
-            
+
             # Limitar a primeiros 5 modelos por provider para não demorar muito
             models_to_test = models  # Testar todos os modelos disponíveis
-            
+
             for model_info in models_to_test:
                 model_id = model_info.get('id', '')
                 model_desc = model_info.get('description', '')
-                
+
                 print(f"  Testando modelo: {model_id}")
-                
+
                 try:
                     # Criar client com o modelo específico
                     test_client = LLMClient(provider=provider, api_key=api_key, model=model_id)
@@ -75,11 +76,11 @@ def test_all_models(limit_providers=None):
                     start_time = time.time()
                     response = test_client.generate(test_prompt)
                     end_time = time.time()
-                    
+
                     response_time = round(end_time - start_time, 2)
                     response_size = len(response)
-                    
-                    results.append({
+
+                    model_results.append({
                         'provider': provider,
                         'model': model_id,
                         'description': model_desc,
@@ -88,9 +89,9 @@ def test_all_models(limit_providers=None):
                         'response': response,
                         'success': True
                     })
-                    
+
                     print(f"    ✓ Tempo: {response_time}s, Tamanho: {response_size} chars")
-                    
+
                 except Exception as e:
                     if isinstance(e, LLMError) and hasattr(e, 'status_code'):
                         error_msg = f"Status Code: {e.status_code}\nHeaders: {e.headers}\nBody: {e.body}"
@@ -103,10 +104,10 @@ def test_all_models(limit_providers=None):
                             try:
                                 error_body = e.read().decode('utf-8')
                                 error_msg += f"\nCorpo do erro: {error_body}"
-                            except:
+                            except Exception:  # pylint: disable=broad-exception-caught
                                 pass
                     print(f"    ✗ Erro no modelo {model_id}: {error_msg}")
-                    results.append({
+                    model_results.append({
                         'provider': provider,
                         'model': model_id,
                         'description': model_desc,
@@ -115,24 +116,27 @@ def test_all_models(limit_providers=None):
                         'response': f"Erro: {error_msg}",
                         'success': False
                     })
-                
+
                 # Espera entre testes para evitar rate limiting
                 time.sleep(2)
-        
+
         except Exception as e:
             print(f"Erro geral com provider {provider}: {e}")
-    
-    return results
+
+    return model_results
 
 
 def generate_html(results):
     """Gera arquivo HTML com os resultados."""
-    test_prompt = "Resume em 3 bullets as tuas funcionalidades, e o que te destaca, enquanto versão específica de modelo de linguagem, dos outros modelos."
-    
+    test_prompt = (
+        "Resume em 3 bullets as tuas funcionalidades, e o que te destaca, "
+        "enquanto versão específica de modelo de linguagem, dos outros modelos."
+    )
+
     # Separar resultados
     successful = [r for r in results if r['success']]
     failed = [r for r in results if not r['success']]
-    
+
     # Calcular estatísticas por provider
     stats = {}
     for provider in ["groq", "huggingface", "gemini", "mistral", "perplexity", "openrouter", "cloudflare"]:
@@ -140,13 +144,19 @@ def generate_html(results):
         if provider_results:
             success_count = len([r for r in provider_results if r['success']])
             fail_count = len([r for r in provider_results if not r['success']])
-            avg_time = round(sum(r['response_time'] for r in provider_results if r['success']) / success_count, 2) if success_count > 0 else 0
+            if success_count > 0:
+                total_time = sum(
+                    r['response_time'] for r in provider_results if r['success']
+                )
+                avg_time = round(total_time / success_count, 2)
+            else:
+                avg_time = 0
             stats[provider] = {
                 'success': success_count,
                 'fail': fail_count,
                 'avg_time': avg_time
             }
-    
+
     html_content = f"""<!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -272,7 +282,7 @@ def generate_html(results):
     <h1>Teste de Modelos LLM</h1>
     <p>Pergunta de teste: "{test_prompt}"</p>
     <p>Total de testes realizados: {len(results)}</p>
-    
+
     <div class="summary">
         <h2>Resumo dos Testes</h2>
         <table class="summary-table">
@@ -286,7 +296,7 @@ def generate_html(results):
             </thead>
             <tbody>
 """
-    
+
     for provider, stat in stats.items():
         html_content += f"""
                 <tr>
@@ -296,12 +306,12 @@ def generate_html(results):
                     <td>{stat['avg_time']}</td>
                 </tr>
 """
-    
+
     html_content += """
             </tbody>
         </table>
     </div>
-    
+
     <h2>Modelos Bem-Sucedidos</h2>
     <table>
         <thead>
@@ -316,7 +326,7 @@ def generate_html(results):
         </thead>
         <tbody>
 """
-    
+
     for i, result in enumerate(successful):
         desc = result['description']
         escaped_desc = desc.replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
@@ -335,11 +345,11 @@ def generate_html(results):
                 <td><button onclick="showModal({i})">Ver Resposta</button></td>
             </tr>
 """
-    
+
     html_content += """
         </tbody>
     </table>
-    
+
     <h2>Modelos Falhados</h2>
     <table>
         <thead>
@@ -352,7 +362,7 @@ def generate_html(results):
         </thead>
         <tbody>
 """
-    
+
     error_modal_index = len(successful)
     for result in failed:
         desc = result['description']
@@ -377,12 +387,12 @@ def generate_html(results):
             </tr>
 """
         error_modal_index += 1
-    
+
     html_content += """
         </tbody>
     </table>
 """
-    
+
     # Adicionar modais apenas para sucessos
     for i, result in enumerate(successful):
         response = result['response']
@@ -403,7 +413,7 @@ def generate_html(results):
         </div>
     </div>
 """
-    
+
     # Adicionar modais para erros
     error_modal_index = len(successful)
     for result in failed:
@@ -423,33 +433,33 @@ def generate_html(results):
     </div>
 """
         error_modal_index += 1
-    
+
     html_content += """
     <script>
         function showModal(index) {
             document.getElementById('modal' + index).style.display = 'block';
         }
-        
+
         function closeModal(index) {
             document.getElementById('modal' + index).style.display = 'none';
         }
-        
+
         function showDescModal(index) {
             document.getElementById('descModal' + index).style.display = 'block';
         }
-        
+
         function closeDescModal(index) {
             document.getElementById('descModal' + index).style.display = 'none';
         }
-        
+
         function showErrorModal(index) {
             document.getElementById('errorModal' + index).style.display = 'block';
         }
-        
+
         function closeErrorModal(index) {
             document.getElementById('errorModal' + index).style.display = 'none';
         }
-        
+
         // Fechar modal clicando fora
         window.onclick = function(event) {
             if (event.target.className === 'modal') {
@@ -460,12 +470,12 @@ def generate_html(results):
 </body>
 </html>
 """
-    
+
     # Salvar arquivo
     output_path = Path(__file__).resolve().parent.parent / "llm_tests.html"
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
-    
+
     print(f"Arquivo HTML gerado: {output_path}")
     return output_path
 
@@ -474,11 +484,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Testar modelos LLM de providers.")
     parser.add_argument("--limitproviders", nargs="*", help="Lista de providers para limitar o teste (ex.: groq perplexity)")
     args = parser.parse_args()
-    
+
     print("Iniciando testes de modelos LLM...")
     results = test_all_models(limit_providers=args.limitproviders)
     print(f"Testes concluídos. {len(results)} modelos testados.")
-    
+
     if results:
         html_file = generate_html(results)
         print(f"Relatório HTML gerado: {html_file}")

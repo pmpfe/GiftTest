@@ -9,11 +9,11 @@ from typing import Optional
 
 class Preferences:
     """Gere preferências persistentes da aplicação."""
-    
+
     def __init__(self, pref_file: str = "data/preferences.json"):
         self.pref_file = Path(pref_file)
         self.pref_file.parent.mkdir(exist_ok=True)
-        
+
         # Cria ficheiro com valores padrão se não existir
         if not self.pref_file.exists():
             self._write_preferences({
@@ -48,35 +48,38 @@ class Preferences:
                         'cloudflare': '@cf/meta/llama-3-8b-instruct'
                     },
                     'prompt_template': (
-                        "Por favor explica, com rigor, a resposta certa e as respostas erradas da pergunta em baixo.\\n"
-                        "Usa formatação HTML (tags <p>, <strong>, <ul>, <li>, <a href='...'>) para estruturar a resposta, "
-                        "incluindo links clicáveis se relevante (por exemplo, para artigos científicos ou recursos educacionais)."
+                        "Por favor explica, com rigor, a resposta certa e "
+                        "as respostas erradas da pergunta em baixo.\\n"
+                        "Usa formatação HTML (tags <p>, <strong>, <ul>, "
+                        "<li>, <a href='...'>) para estruturar a resposta, "
+                        "incluindo links clicáveis se relevante (por exemplo, "
+                        "para artigos científicos ou recursos educacionais)."
                     ),
                     'system_prompt': "És um professor de nível universitário"
                 }
             })
-    
+
     def get_last_gift_file(self) -> Optional[str]:
         """Retorna o último ficheiro GIFT usado."""
         prefs = self._read_preferences()
         last_file = prefs.get('last_gift_file', '')
-        
+
         # Verifica se o ficheiro ainda existe
         if last_file and Path(last_file).exists():
             return last_file
         return None
-    
+
     def set_last_gift_file(self, filepath: str):
         """Guarda o último ficheiro GIFT usado."""
         prefs = self._read_preferences()
         prefs['last_gift_file'] = filepath
         self._write_preferences(prefs)
-    
+
     def get_theme(self) -> str:
         """Retorna o tema preferido."""
         prefs = self._read_preferences()
         return prefs.get('theme', 'default')
-    
+
     def set_theme(self, theme: str):
         """Guarda o tema preferido."""
         prefs = self._read_preferences()
@@ -115,29 +118,33 @@ class Preferences:
 
     def get_llm_prompt_template(self) -> str:
         prefs = self._read_preferences()
-        return prefs.get('llm', {}).get('prompt_template', "Por favor explica, com rigor, a resposta certa e as respostas erradas da pergunta em baixo.")
+        default = (
+            "Por favor explica, com rigor, a resposta certa e "
+            "as respostas erradas da pergunta em baixo."
+        )
+        return prefs.get('llm', {}).get('prompt_template', default)
 
     def set_llm_prompt_template(self, template: str):
         prefs = self._read_preferences()
         prefs.setdefault('llm', {})['prompt_template'] = template
         self._write_preferences(prefs)
-    
+
     def get_llm_system_prompt(self) -> str:
         prefs = self._read_preferences()
         return prefs.get('llm', {}).get('system_prompt', "És um professor de nível universitário")
-    
+
     def set_llm_system_prompt(self, prompt: str):
         prefs = self._read_preferences()
         prefs.setdefault('llm', {})['system_prompt'] = prompt
         self._write_preferences(prefs)
-    
+
     # ---- UI settings ----
     def get_main_window_size_percent(self) -> tuple[int, int]:
         """Retorna (width%, height%) da janela principal."""
         prefs = self._read_preferences()
         ui = prefs.get('ui', {})
         return (ui.get('main_window_width_percent', 66), ui.get('main_window_height_percent', 66))
-    
+
     def set_main_window_size_percent(self, width_percent: int, height_percent: int):
         """Guarda tamanho da janela principal em percentagem do ecrã."""
         prefs = self._read_preferences()
@@ -145,13 +152,13 @@ class Preferences:
         ui['main_window_width_percent'] = width_percent
         ui['main_window_height_percent'] = height_percent
         self._write_preferences(prefs)
-    
+
     def get_explanation_window_size_percent(self) -> tuple[int, int]:
         """Retorna (width%, height%) da janela de explicação."""
         prefs = self._read_preferences()
         ui = prefs.get('ui', {})
         return (ui.get('explanation_width_percent', 66), ui.get('explanation_height_percent', 66))
-    
+
     def set_explanation_window_size_percent(self, width_percent: int, height_percent: int):
         """Guarda tamanho da janela de explicação em percentagem do parent."""
         prefs = self._read_preferences()
@@ -159,29 +166,29 @@ class Preferences:
         ui['explanation_width_percent'] = width_percent
         ui['explanation_height_percent'] = height_percent
         self._write_preferences(prefs)
-    
+
     def get_explanation_links_behavior(self) -> str:
         """Retorna 'browser' ou 'internal'."""
         prefs = self._read_preferences()
         return prefs.get('ui', {}).get('explanation_links_behavior', 'browser')
-    
+
     def set_explanation_links_behavior(self, behavior: str):
         """Define comportamento de links: 'browser' ou 'internal'."""
         prefs = self._read_preferences()
         prefs.setdefault('ui', {})['explanation_links_behavior'] = behavior
         self._write_preferences(prefs)
-    
+
     def get_quick_test_questions(self) -> int:
         """Retorna o número de perguntas para o teste rápido."""
         prefs = self._read_preferences()
         return prefs.get('ui', {}).get('quick_test_questions', 20)
-    
+
     def set_quick_test_questions(self, count: int):
         """Guarda o número de perguntas para o teste rápido."""
         prefs = self._read_preferences()
         prefs.setdefault('ui', {})['quick_test_questions'] = count
         self._write_preferences(prefs)
-    
+
     def _read_preferences(self) -> dict:
         """Lê as preferências do ficheiro."""
         try:
@@ -189,7 +196,7 @@ class Preferences:
                 return json.load(f)
         except (json.JSONDecodeError, FileNotFoundError):
             return {}
-    
+
     def _write_preferences(self, prefs: dict):
         """Guarda as preferências no ficheiro."""
         with open(self.pref_file, 'w', encoding='utf-8') as f:

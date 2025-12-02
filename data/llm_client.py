@@ -38,9 +38,15 @@ class LLMClient:
         self._log_file = Path(__file__).resolve().parent.parent / "http_log.txt"
 
     # --- Logging + HTTP helper ---
-    def _http_request(self, req: urllib.request.Request, body: Optional[bytes] = None, timeout: int = 60) -> Tuple[int, dict, bytes]:
-        """Perform HTTP request with detailed logging. Returns (status, headers, body_bytes).
-        Logs request method, URL, headers, payload size and response details to http_log.txt.
+    def _http_request(
+            self, req: urllib.request.Request,
+            body: Optional[bytes] = None,
+            timeout: int = 60) -> Tuple[int, dict, bytes]:
+        """Perform HTTP request with detailed logging.
+
+        Returns (status, headers, body_bytes).
+        Logs request method, URL, headers, payload size and response
+        details to http_log.txt.
         """
         ts = datetime.datetime.utcnow().isoformat() + "Z"
         try:
@@ -139,7 +145,7 @@ class LLMClient:
                         'id': m.get("id"),
                         'description': f"Owner: {m.get('owned_by', '?')}"
                     })
-            
+
             # Fallback if API returns unexpected content
             if not models:
                 fallback = [
@@ -177,7 +183,7 @@ class LLMClient:
     def _gemini_list_models(self) -> List[dict]:
         if not self.api_key:
             # Public listing might require key; return common defaults
-            return [{'id': "gemini-1.5-flash", 'description': 'Fast and versatile'}, 
+            return [{'id': "gemini-1.5-flash", 'description': 'Fast and versatile'},
                     {'id': "gemini-1.5-pro", 'description': 'High performance'}]
         url = f"{GEMINI_LIST}?key={urllib.parse.quote(self.api_key)}"
         req = urllib.request.Request(url)
@@ -207,9 +213,14 @@ class LLMClient:
 
     def _mistral_list_models(self) -> List[dict]:
         """List available Mistral models via API."""
-        fallback = ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest", "codestral-latest", "open-mixtral-8x7b"]
-        fallback_dicts = [{'id': m, 'description': 'Mistral Model'} for m in fallback]
-        
+        fallback = [
+            "mistral-large-latest", "mistral-medium-latest",
+            "mistral-small-latest", "codestral-latest", "open-mixtral-8x7b"
+        ]
+        fallback_dicts = [
+            {'id': m, 'description': 'Mistral Model'} for m in fallback
+        ]
+
         if not self.api_key:
             return fallback_dicts
         url = "https://api.mistral.ai/v1/models"
@@ -250,7 +261,7 @@ class LLMClient:
             "google/gemma-2-9b-it"
         ]
         fallback_dicts = [{'id': m, 'description': 'OpenRouter Model'} for m in fallback]
-        
+
         url = "https://openrouter.ai/api/v1/models"
         headers = {
             "Accept": "application/json",
@@ -276,7 +287,7 @@ class LLMClient:
 
     def _cloudflare_list_models(self) -> List[dict]:
         """List available Cloudflare Workers AI text generation models.
-        
+
         Uses the Cloudflare API if credentials are available (ACCOUNT_ID:API_TOKEN format).
         """
         fallback = [
@@ -289,18 +300,18 @@ class LLMClient:
             "@cf/google/gemma-7b-it-lora"
         ]
         fallback_dicts = [{'id': m, 'description': 'Cloudflare Model'} for m in fallback]
-        
+
         if not self.api_key or ":" not in self.api_key:
             return fallback_dicts
-        
+
         # Parse ACCOUNT_ID:API_TOKEN
         account_id, api_token = self.api_key.split(":", 1)
         account_id = account_id.strip()
         api_token = api_token.strip()
-        
+
         if not account_id or not api_token:
             return fallback_dicts
-        
+
         # Fetch models from Cloudflare API
         url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/models/search"
         headers = {
@@ -312,10 +323,10 @@ class LLMClient:
         try:
             _, _, resp_body = self._http_request(req, None, timeout=30)
             data = json.loads(resp_body.decode("utf-8"))
-            
+
             if not data.get("success", False):
                 return fallback_dicts
-            
+
             # Filter for text generation models
             models = []
             for m in data.get("result", []):
@@ -328,7 +339,7 @@ class LLMClient:
                         'id': model_name,
                         'description': m.get("description", "")
                     })
-            
+
             return models if models else fallback_dicts
         except Exception:
             return fallback_dicts
@@ -357,7 +368,7 @@ class LLMClient:
                 first = models[0]
                 model = first['id'] if isinstance(first, dict) else first
         model = (model or "").strip()
-        
+
         if not self.api_key:
             raise LLMError(f"API key em falta para {self.provider}.")
         base_map = {
@@ -545,25 +556,25 @@ class LLMClient:
 
     def _cloudflare_generate(self, prompt: str) -> str:
         """Generate text using Cloudflare Workers AI.
-        
+
         API key format: ACCOUNT_ID:API_TOKEN (separated by colon).
         """
         if not self.api_key or ":" not in self.api_key:
             raise LLMError("Cloudflare requer credenciais no formato ACCOUNT_ID:API_TOKEN")
-        
+
         # Split on first colon only (API token may contain colons)
         account_id, api_token = self.api_key.split(":", 1)
         account_id = account_id.strip()
         api_token = api_token.strip()
-        
+
         if not account_id or not api_token:
             raise LLMError("ACCOUNT_ID e API_TOKEN não podem estar vazios")
-        
+
         model = (self.model or "@cf/meta/llama-3-8b-instruct").strip()
-        
+
         # Cloudflare Workers AI endpoint
         url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/{model}"
-        
+
         payload = {
             "messages": [
                 {"role": "system", "content": self.system_prompt},
@@ -581,13 +592,13 @@ class LLMClient:
         try:
             _, _, resp_body = self._http_request(req, body, timeout=60)
             data = json.loads(resp_body.decode("utf-8"))
-            
+
             # Cloudflare returns {success: bool, result: {response: "..."}, errors: [...]}
             if not data.get("success", False):
                 errors = data.get("errors", [])
                 err_msg = errors[0].get("message", "Erro desconhecido") if errors else "Erro desconhecido"
                 raise LLMError(f"Cloudflare erro: {err_msg}")
-            
+
             result = data.get("result", {})
             response = result.get("response", "")
             if not response:

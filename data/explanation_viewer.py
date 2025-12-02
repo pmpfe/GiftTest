@@ -3,25 +3,28 @@ Displays LLM explanations in a rich viewer using QWebEngineView for HTML renderi
 Falls back to plain text if QtWebEngine is unavailable.
 """
 
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QMessageBox, QWidget, QSizePolicy
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QKeyEvent
-from PyQt6.QtGui import QFont, QDesktopServices
 import re
 import subprocess
 import sys
 
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QTextEdit, QWidget, QSizePolicy
+)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QKeyEvent, QDesktopServices
+
 try:
     from PyQt6.QtWebEngineWidgets import QWebEngineView
     from PyQt6.QtWebEngineCore import QWebEnginePage
-    
+
     class ExplanationPage(QWebEnginePage):
         """Custom page que controla como links são abertos."""
-        
+
         def __init__(self, parent, open_links_external):
             super().__init__(parent)
             self.open_links_external = open_links_external
-        
+
         def acceptNavigationRequest(self, url, nav_type, is_main_frame):
             """Intercepta cliques em links."""
             if nav_type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked:
@@ -31,15 +34,19 @@ try:
                     return False
                 # Deixa abrir internamente (default)
             return super().acceptNavigationRequest(url, nav_type, is_main_frame)
-    
+
     HAS_WEBENGINE = True
 except ImportError:
     HAS_WEBENGINE = False
 
 
-def show_explanation(parent, title: str, html_content: str, question_text: str | None = None, question_options: list | None = None, metadata: dict | None = None):
+def show_explanation(
+        parent, title: str, html_content: str,
+        question_text: str | None = None,
+        question_options: list | None = None,
+        metadata: dict | None = None):
     """Shows explanation in a dialog with HTML rendering support.
-    
+
     Args:
         metadata: Dict with 'provider', 'model', 'time' keys for display.
     """
@@ -51,16 +58,16 @@ def show_explanation(parent, title: str, html_content: str, question_text: str |
     else:
         width_percent, height_percent = 66, 66
         links_behavior = 'browser'
-    
+
     # Create as independent, non-modal dialog
     dialog = QDialog(None)
     dialog.setWindowTitle(title)
     dialog.setWindowModality(Qt.WindowModality.NonModal)
     dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
-    
+
     # Global stylesheet for borders (if not inherited)
     dialog.setStyleSheet("QDialog { border: 1px solid #ccc; }")
-    
+
     # Aplica tamanho configurável
     if parent:
         w = int(parent.width() * width_percent / 100)
@@ -80,20 +87,20 @@ def show_explanation(parent, title: str, html_content: str, question_text: str |
     header_layout = QHBoxLayout(header)
     header_layout.setContentsMargins(0, 0, 0, 4)
     header_layout.setSpacing(12)
-    
+
     # Left side: Title + Metadata
     left_col = QWidget()
     left_layout = QVBoxLayout(left_col)
     left_layout.setContentsMargins(0, 0, 0, 0)
     left_layout.setSpacing(2)
-    
+
     title_label = QLabel(title)
     title_font = title_label.font()
     title_font.setPointSize(title_font.pointSize() + 4)
     title_font.setBold(True)
     title_label.setFont(title_font)
     left_layout.addWidget(title_label)
-    
+
     # Metadata label (initially empty or loading)
     meta_label = QLabel()
     meta_label.setStyleSheet("color: #666; font-size: 11px;")
@@ -105,9 +112,9 @@ def show_explanation(parent, title: str, html_content: str, question_text: str |
     else:
         meta_label.setText("A carregar...")
     left_layout.addWidget(meta_label)
-    
+
     header_layout.addWidget(left_col, 35)
-    
+
     if question_text:
         question_label = QLabel(question_text)
         question_label.setWordWrap(True)
@@ -119,7 +126,7 @@ def show_explanation(parent, title: str, html_content: str, question_text: str |
         question_label.setMaximumHeight(max_h)
         question_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         header_layout.addWidget(question_label, 30)
-    
+
     # Answers list compact rendering (right side under question)
     if question_options:
         answers_widget = QWidget()
@@ -137,7 +144,7 @@ def show_explanation(parent, title: str, html_content: str, question_text: str |
             lbl.setWordWrap(True)
             answers_layout.addWidget(lbl)
         header_layout.addWidget(answers_widget, 35)
-    
+
     layout.addWidget(header)
 
     if HAS_WEBENGINE:
@@ -176,11 +183,11 @@ def show_explanation(parent, title: str, html_content: str, question_text: str |
                 super().keyPressEvent(event)
 
         viewer = ZoomableWebView()
-        
+
         # Define custom page para controlar links
         custom_page = ExplanationPage(viewer, links_behavior == 'browser')
         viewer.setPage(custom_page)
-        
+
         # HTML com fonte sans-serif
         html_with_style = f"""
         <!DOCTYPE html>
@@ -209,12 +216,17 @@ def show_explanation(parent, title: str, html_content: str, question_text: str |
         info = QLabel("QtWebEngine não instalado. A mostrar como texto simples.")
         info.setStyleSheet("color: gray;")
         layout.addWidget(info)
-        
+
         hint_btn = QPushButton("Instalar QtWebEngine (pacman -S python-pyqt6-webengine)")
-        hint_btn.clicked.connect(lambda: subprocess.run([sys.executable, "-m", "pip", "install", "PyQt6-WebEngine"], check=False))
+        hint_btn.clicked.connect(
+            lambda: subprocess.run(
+                [sys.executable, "-m", "pip", "install", "PyQt6-WebEngine"],
+                check=False
+            )
+        )
         layout.addWidget(hint_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         layout.addSpacing(10)
-        
+
         txt = QTextEdit()
         txt.setReadOnly(True)
         txt.setPlainText(re.sub(r"<[^>]+>", "", html_content))
@@ -229,14 +241,14 @@ def show_explanation(parent, title: str, html_content: str, question_text: str |
     close_btn.clicked.connect(dialog.close)
     btn_layout.addWidget(close_btn)
     layout.addLayout(btn_layout)
-    
+
     # Keep reference to avoid GC closing the window
     try:
         parent._last_explanation_dialog = dialog
     except Exception:
         pass
     dialog.show()
-    
+
     # Return dialog and viewer to allow updates
     return dialog, viewer if HAS_WEBENGINE else txt, meta_label
 
