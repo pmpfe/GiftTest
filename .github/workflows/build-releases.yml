@@ -44,7 +44,7 @@ jobs:
         continue-on-error: true
       
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: GiftTestPractice-Windows
           path: |
@@ -99,7 +99,7 @@ jobs:
           echo "Signing skipped - configure with your Apple Developer credentials"
       
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: GiftTestPractice-macOS
           path: |
@@ -175,7 +175,7 @@ jobs:
             -o packaging/linux/
       
       - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: GiftTestPractice-Linux
           path: |
@@ -193,7 +193,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: all-artifacts/
       
