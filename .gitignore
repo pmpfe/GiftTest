@@ -8,3 +8,49 @@ llm_tests.html
 *.gift.txt
 .gitbackup.tgz
 .git
+
+# Build artifacts
+dist/
+build/
+*.pyc
+*.pyo
+*.egg-info/
+*.manifest
+.eggs/
+
+# Packaging output (but keep .spec files for configuration)
+*.exe
+*.dmg
+*.deb
+*.rpm
+
+# PyInstaller build directories
+build/*/
+*.pkg
+*.war
+
+# Packaging directories (build staging)
+packaging/*/build/
+packaging/*/deb-build/
+packaging/*/rpm-build/
+packaging/macos/dmg-tmp/
+
+# Platform-specific artifacts
+*.iso
+
+# Distribution / packaging
+.Python
+env/
+venv/
+ENV/
+develop-eggs/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+.installed.cfg
+*.egg

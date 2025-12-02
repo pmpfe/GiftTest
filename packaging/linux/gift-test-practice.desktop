@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Gift Test Practice
+Comment=Interactive GIFT Test Practice Application
+Exec=gift-test-practice
+Icon=gift-test-practice
+Categories=Education;
+Terminal=false
+Version=1.0
