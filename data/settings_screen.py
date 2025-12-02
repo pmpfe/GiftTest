@@ -3,6 +3,8 @@ Settings screen for configuring LLM provider, API keys, model selection,
 prompt template, theme, and GIFT file path.
 """
 
+import webbrowser
+
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                                QLineEdit, QComboBox, QTextEdit, QTabWidget, QGroupBox,
                                QFileDialog, QMessageBox, QSpinBox)
@@ -222,6 +224,10 @@ class SettingsScreen:
         self.key_entry.setEchoMode(QLineEdit.EchoMode.Password)
         top_layout.addWidget(self.key_entry)
         
+        instructions_btn = QPushButton("Instruções para obter API KEY")
+        instructions_btn.clicked.connect(self._open_api_key_instructions)
+        top_layout.addWidget(instructions_btn)
+        
         top_layout.addStretch()
         layout.addWidget(top_widget)
         layout.addSpacing(10)
@@ -279,6 +285,12 @@ class SettingsScreen:
         layout.addWidget(test_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         
         layout.addStretch()
+    
+    def _open_api_key_instructions(self):
+        provider = self.provider_combo.currentText()
+        query = f"Como obter API key para o {provider}"
+        url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
+        webbrowser.open(url)
     
     def _get_key_label(self, provider):
         """Return appropriate label for API key field based on provider."""

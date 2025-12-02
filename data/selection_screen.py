@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
                                QTableWidget, QTableWidgetItem, QHeaderView, QFrame)
 from PyQt6.QtCore import Qt
 import random
+import re
 from .history_screen import HistoryScreen
 
 
@@ -340,7 +341,12 @@ class SelectionScreen:
         explain_entry = QLineEdit()
         if has_questions and self.app.parser.questions:
             random_q = random.choice(self.app.parser.questions)
-            explain_entry.setText(str(random_q.number))
+            # Extract number only (e.g., "345" from "Questão 345")
+            number_only = re.search(r'\d+', str(random_q.number))
+            if number_only:
+                explain_entry.setText(number_only.group())
+            else:
+                explain_entry.setText(str(random_q.number))
         explain_entry.setEnabled(has_questions)
         self.app.explain_question_var = explain_entry
         extra_layout.addWidget(explain_entry)

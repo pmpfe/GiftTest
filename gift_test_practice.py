@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
 import random
 import sys
 import time
+import re
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -145,36 +146,26 @@ class GIFT_TestApp(QMainWindow):
         scroll.setWidgetResizable(True)
         container = QWidget()
         c_layout = QVBoxLayout(container)
-        
-        # Grupo: Notas do Autor
-        author_title = QLabel("Notas do autor (<a href='mailto:pferreira@gmail.com'>pferreira@gmail.com</a>)")
-        author_title.setTextFormat(Qt.TextFormat.RichText)
-        author_title.setOpenExternalLinks(True)
-        # author_title.setStyleSheet("font-weight: bold; font-size: 14px;")
-        c_layout.addWidget(author_title)
-        
-        author_grp = QGroupBox()
-        author_layout = QVBoxLayout()
-        author_html = (
-            "<p>- A avaliação deve estar ao serviço da aprendizagem, mais do que o contrário.</p>"
-            "<p>- Os modelos de IA, como em diferente medida as enciclopédias, os professores ou a percepção sensorial, são sistemas de mediar o acesso ao real - úteis, mas limitados. Usa-os, mas questiona-os, e a ti. Imagina, explora, experimenta.</p>"
-            "<p>- Este software é teu. Podes fazer com ele tudo o que quiseres e conseguires.</p>"
-        )
-        author_lbl = QLabel(author_html)
-        author_lbl.setWordWrap(True)
-        author_lbl.setTextFormat(Qt.TextFormat.RichText)
-        author_layout.addWidget(author_lbl)
-        author_grp.setLayout(author_layout)
-        c_layout.addWidget(author_grp)
+
+        apptitle_html = (
+            "<div style='text-align:center;'><b>Sistema de Testes GIFT</b></div>"
+            "<div style='text-align:center; font-size: small;'><a href='https://github.com/pmpfe/GiftTest'>github.com/pmpfe/GiftTest</a></div>"
+            )
+        apptitle_label = QLabel(apptitle_html)
+        apptitle_label.setTextFormat(Qt.TextFormat.RichText)
+        apptitle_label.setOpenExternalLinks(True)
+        c_layout.addWidget(apptitle_label)
+        c_layout.addSpacing(8)
+
         
         # Grupo: O que este programa faz
-        what_grp = QGroupBox("O que este programa faz")
+        what_grp = QGroupBox("O que o programa faz")
         what_layout = QVBoxLayout()
         what_html = (
-            "<ul style=\"list-style-type: '-';\">"
-            "<li>Praticar testes (lotes de perguntas)</li>"
-            "<li>Explorar perguntas e respostas com serviços de IA públicos (função explicar)</li>"
-            "</ul>"
+            
+            "<p>- Praticar testes (a partir de bancos de perguntas)</p>"
+            "<p>- Explorar perguntas e respostas com serviços de IA públicos (função explicar)</p>"
+
         )
         what_lbl = QLabel(what_html)
         what_lbl.setWordWrap(True)
@@ -199,6 +190,27 @@ class GIFT_TestApp(QMainWindow):
         how_layout.addWidget(how_lbl)
         how_grp.setLayout(how_layout)
         c_layout.addWidget(how_grp)
+
+                # Grupo: Notas do Autor
+        author_title = QLabel("Notas do autor (<a href='mailto:pferreira@gmail.com'>pferreira@gmail.com</a>)")
+        author_title.setTextFormat(Qt.TextFormat.RichText)
+        author_title.setOpenExternalLinks(True)
+        # author_title.setStyleSheet("font-weight: bold; font-size: 14px;")
+        c_layout.addWidget(author_title)
+        
+        author_grp = QGroupBox()
+        author_layout = QVBoxLayout()
+        author_html = (
+            "<p>- A avaliação deve estar ao serviço da aprendizagem, mais do que o contrário.</p>"
+            "<p>- Os modelos de IA, como em diferente medida as enciclopédias, os professores ou a percepção sensorial, são mediadores do acesso ao real. São úteis, mas limitados. Usa-os todos, mas questiona. Imagina, explora, experimenta.</p>"
+            "<p>- Este software é teu. Podes fazer com ele tudo o que quiseres e conseguires.</p>"
+        )
+        author_lbl = QLabel(author_html)
+        author_lbl.setWordWrap(True)
+        author_lbl.setTextFormat(Qt.TextFormat.RichText)
+        author_layout.addWidget(author_lbl)
+        author_grp.setLayout(author_layout)
+        c_layout.addWidget(author_grp)
         
         c_layout.addStretch()
         scroll.setWidget(container)
@@ -206,7 +218,7 @@ class GIFT_TestApp(QMainWindow):
         btn = QPushButton("Fechar")
         btn.clicked.connect(dlg.close)
         layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignRight)
-        dlg.resize(600, 500)
+        dlg.resize(600, 600)
         dlg.exec()
     
     def select_all_categories(self):
@@ -263,14 +275,40 @@ class GIFT_TestApp(QMainWindow):
             question = question_obj
             qnum = str(question.number)
         else:
-            qnum = (self.explain_question_var.text() or "").strip()
-            if not qnum.isdigit():
+            qnum_input = (self.explain_question_var.text() or "").strip()
+            if not qnum_input:
                 QMessageBox.warning(self, "Aviso", "Insira um número de pergunta válido.")
                 return
-            question = next((q for q in self.parser.questions if str(q.number) == qnum), None)
-            if not question:
-                QMessageBox.warning(self, "Aviso", f"Pergunta {qnum} não encontrada.")
+            
+            # Try to match both "345" and "Questão 345" formats
+            # First, extract just the number from input
+            num_match = re.search(r'\d+', qnum_input)
+            if not num_match:
+                QMessageBox.warning(self, "Aviso", "Insira um número de pergunta válido.")
                 return
+            
+            search_num = num_match.group()
+            
+            # Search for question - try exact match first, then by number only
+            question = None
+            for q in self.parser.questions:
+                if str(q.number) == qnum_input or str(q.number) == f"Questão {search_num}":
+                    question = q
+                    break
+            
+            # Fallback: search by number only (e.g., "345" in "Questão 345")
+            if not question:
+                for q in self.parser.questions:
+                    q_num_match = re.search(r'\d+', str(q.number))
+                    if q_num_match and q_num_match.group() == search_num:
+                        question = q
+                        break
+            
+            if not question:
+                QMessageBox.warning(self, "Aviso", f"Pergunta {qnum_input} não encontrada.")
+                return
+            
+            qnum = str(question.number)
 
         # Monta prompt a partir do template + pergunta e opções
         template = self.preferences.get_llm_prompt_template()
@@ -308,16 +346,26 @@ class GIFT_TestApp(QMainWindow):
             client = LLMClient(provider, key, model, self.preferences.get_llm_system_prompt())
             self._llm_worker = LLMWorker(client, prompt)
             
+            # Keep references to dialog components for callbacks
+            dialog_ref = [dialog]  # Use list to capture by reference
+            viewer_ref = [viewer_widget]
+            meta_ref = [meta_label]
+            
             def on_success(result):
+                # Check if dialog still exists
+                if not dialog_ref[0] or not dialog_ref[0].isVisible():
+                    return
+                
                 end_time = time.time()
                 duration = end_time - start_time
                 
                 # Update metadata label
                 meta_text = f"Provider: {provider} | Modelo: {model} | Tempo: {duration:.2f}s"
                 try:
-                    meta_label.setText(meta_text)
-                except RuntimeError:
-                    # Dialog was closed, ignore
+                    if meta_ref[0]:
+                        meta_ref[0].setText(meta_text)
+                except (RuntimeError, AttributeError):
+                    # Dialog was closed or widget destroyed
                     pass
 
                 # Wrap plaintext in monospace HTML if no HTML tags detected
@@ -329,7 +377,7 @@ class GIFT_TestApp(QMainWindow):
                 
                 # Update viewer content
                 try:
-                    if hasattr(viewer_widget, 'setHtml'):  # QWebEngineView
+                    if viewer_ref[0] and hasattr(viewer_ref[0], 'setHtml'):  # QWebEngineView
                         # Re-apply style
                         html_with_style = f"""
                         <!DOCTYPE html>
@@ -349,15 +397,18 @@ class GIFT_TestApp(QMainWindow):
                         </body>
                         </html>
                         """
-                        viewer_widget.setHtml(html_with_style)
-                    else:  # QTextEdit fallback
-                        import re
-                        viewer_widget.setPlainText(re.sub(r"<[^>]+>", "", html))
-                except RuntimeError:
-                    # Dialog was closed, ignore
+                        viewer_ref[0].setHtml(html_with_style)
+                    elif viewer_ref[0]:  # QTextEdit fallback
+                        viewer_ref[0].setPlainText(re.sub(r"<[^>]+>", "", html))
+                except (RuntimeError, AttributeError):
+                    # Dialog was closed or widget destroyed, ignore
                     pass
             
             def on_error(err_msg):
+                # Check if dialog still exists
+                if not dialog_ref[0] or not dialog_ref[0].isVisible():
+                    return
+                
                 error_html = f"""
                 <div style='color:red; padding:20px; font-family:sans-serif;'>
                     <h3>Erro na geração</h3>
@@ -365,13 +416,13 @@ class GIFT_TestApp(QMainWindow):
                 </div>
                 """
                 try:
-                    if hasattr(viewer_widget, 'setHtml'):
-                        viewer_widget.setHtml(error_html)
-                    else:
-                        viewer_widget.setPlainText(f"Erro: {err_msg}")
+                    if viewer_ref[0] and hasattr(viewer_ref[0], 'setHtml'):
+                        viewer_ref[0].setHtml(error_html)
+                    elif viewer_ref[0]:
+                        viewer_ref[0].setPlainText(f"Erro: {err_msg}")
                     QMessageBox.critical(self, "Erro LLM", err_msg)
-                except RuntimeError:
-                    # Dialog was closed, ignore
+                except (RuntimeError, AttributeError):
+                    # Dialog was closed or widget destroyed
                     pass
 
             self._llm_worker.finished.connect(on_success)
