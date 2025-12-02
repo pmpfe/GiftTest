@@ -160,7 +160,7 @@ jobs:
             --description "GIFT Test Practice Application" \
             --maintainer "pmpfe@github" \
             -C packaging/linux/deb-build \
-            -o packaging/linux/
+            -p packaging/linux/gift-test-practice_$VERSION.deb
       
       - name: Create RPM package
         run: |
@@ -179,7 +179,7 @@ jobs:
             --description "GIFT Test Practice Application" \
             --maintainer "pmpfe@github" \
             -C packaging/linux/rpm-build \
-            -o packaging/linux/
+            -p packaging/linux/gift-test-practice_$VERSION.rpm
       
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -195,6 +195,8 @@ jobs:
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     
     steps:
       - uses: actions/checkout@v4
