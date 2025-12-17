@@ -5,24 +5,42 @@ import argparse
 import sys
 import json
 import csv
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Callable
 
 # Adicionar o diretório pai ao sys.path para encontrar os módulos data
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data.llm_client import LLMClient, LLMError
 from data.preferences import Preferences
 
-# ==========================
+# ========================== 
 # CONSTANTES E CONFIGURAÇÕES GLOBAIS
-# ==========================
+# ========================== 
 DEFAULT_BATCH_SIZE = 10
-DEFAULT_SLEEP_SECONDS = 5
+DEFAULT_SLEEP_SECONDS = 2
 DEFAULT_MAX_RETRIES = 3
-DEFAULT_INITIAL_SLEEP = 10
+DEFAULT_INITIAL_SLEEP = 5
+ERROR_LOG_FILE = "gift2boolean_error.log"
 
-# ==========================
+# ========================== 
+# FUNÇÕES UTILITÁRIAS
+# ========================== 
+def log_error(message: str):
+    """Escreve uma mensagem de erro no ficheiro de log com um timestamp."""
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    with open(ERROR_LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(f"[{timestamp}] {message}\n")
+
+def format_time(seconds: float) -> str:
+    """Converte segundos para um formato legível HH:MM:SS."""
+    seconds = int(seconds)
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+# ========================== 
 # PARSER GIFT (para modo "generate")
-# ==========================
+# ========================== 
 GIFT_CATEGORY_RE = re.compile(r'^$CATEGORY:\s*(?:name=)?(?P<cat>.+)$')
 GIFT_QUESTION_RE = re.compile(r'^(?P<name>::[^:]+::)?(?P<text>.+?)\s*\{(?P<answers>.*)\}\s*$', re.DOTALL)
 
@@ -91,14 +109,10 @@ def parse_gift_file(path: str) -> List[Dict[str, Any]]:
                 question_id += 1
     return questions
 
-# ==========================
+# ========================== 
 # PROCESSAMENTO DE LOTES COM RETENTATIVAS
-# ==========================
-def process_batch_with_retries(llm_client: LLMClient, batch_prompt: str, max_retries: int, initial_sleep: int, parse_func: callable) -> List[Dict[str, Any]]:
-    """
-    Tenta processar um lote, com um número de retentativas e espera exponencial em caso de falha.
-    Aceita uma função de parsing para o output do LLM.
-    """
+# ========================== 
+def process_batch_with_retries(llm_client: LLMClient, batch_prompt: str, max_retries: int, initial_sleep: int, parse_func: Callable) -> List[Dict[str, Any]]:
     for attempt in range(max_retries):
         try:
             print(f" (Tentativa {attempt + 1}/{max_retries})...", end="", flush=True)
@@ -106,31 +120,32 @@ def process_batch_with_retries(llm_client: LLMClient, batch_prompt: str, max_ret
             if not output_text or not output_text.strip():
                 raise LLMError("Resposta do modelo estava vazia.")
             
-            parsed = parse_func(output_text) # Usa a função de parsing passada como argumento
+            parsed = parse_func(output_text)
 
             if not parsed:
-                print("\n[DEBUG] A resposta do modelo não pôde ser analisada ou estava vazia.")
-                print("==================== RESPOSTA BRUTA DO MODELO ====================")
-                print(output_text)
-                print("==================================================================")
-                raise LLMError("Resposta do modelo inválida ou vazia após parsing.")
+                error_detail = "Resposta do modelo inválida ou vazia após parsing."
+                log_error(f"Erro no Lote: {error_detail}\n--- PROMPT ---\n{batch_prompt}\n--- RESPOSTA ---\n{output_text}\n----------")
+                raise LLMError(error_detail)
 
             print(" Sucesso.")
             return parsed
         except LLMError as e:
-            print(f" Erro: {e}")
+            error_message = f"Erro na tentativa {attempt + 1}: {e}"
+            print(f" {error_message}")
+            log_error(error_message)
             if attempt < max_retries - 1:
                 sleep_time = initial_sleep * (2 ** attempt)
                 print(f"A aguardar {sleep_time} segundos antes de tentar novamente...")
                 time.sleep(sleep_time)
             else:
-                print(f"[ERRO FATAL] O lote falhou após {max_retries} tentativas.")
-                return ""
-    return ""
+                log_error(f"Lote falhou após {max_retries} tentativas.\n--- PROMPT ---\n{batch_prompt}\n----------")
+                print(f"[ERRO FATAL] O lote falhou após {max_retries} tentativas. Verifique {ERROR_LOG_FILE}.")
+                return []
+    return []
 
-# ==========================
+# ========================== 
 # LÓGICA DO MODO "GENERATE"
-# ==========================
+# ========================== 
 GENERATE_SYSTEM_PROMPT = (
     "És um assistente que converte perguntas de escolha múltipla em frases do tipo verdadeiro/falso, em português de Portugal.\n"
     "Para cada pergunta recebida, e para cada alternativa, deves:\n"
@@ -143,6 +158,7 @@ GENERATE_SYSTEM_PROMPT = (
     "Não produzas nenhum texto adicional fora deste formato."
 )
 GENERATE_FEW_SHOT = """
+
 EXEMPLO 1:
 PERGUNTA 1 (categoria: Anatomia):
 Texto: Qual destes músculos não pertence ao manguito rotador?
@@ -189,72 +205,31 @@ def parse_generate_output(text: str) -> List[Dict[str, Any]]:
     return results
 
 def run_generate_mode(args: argparse.Namespace, llm_client: LLMClient):
-    llm_client.system_prompt = GENERATE_SYSTEM_PROMPT # Define o system_prompt aqui
+    llm_client.system_prompt = GENERATE_SYSTEM_PROMPT
 
     all_questions = parse_gift_file(args.input_file)
     print(f"Lidas {len(all_questions)} perguntas no total do ficheiro '{args.input_file}'.")
 
     progress_file = "generate_progress.json"
-    processed_ids = set()
-    try:
-        if os.path.exists(progress_file):
-            with open(progress_file, "r", encoding="utf-8") as pf:
-                progress_data = json.load(pf)
-                if progress_data.get("output_file") == args.output_file:
-                    processed_ids = set(progress_data.get("processed_question_ids", []))
-                    print(f"Retomando trabalho. {len(processed_ids)} perguntas já foram processadas.")
-    except (IOError, json.JSONDecodeError) as e:
-        print(f"Aviso: Não foi possível ler o ficheiro de progresso '{progress_file}': {e}. A começar do início.")
     
-    questions_to_process = [q for q in all_questions if q["id"] not in processed_ids]
-    if not questions_to_process:
-        print("Todas as perguntas já foram processadas.")
-        if os.path.exists(progress_file): os.remove(progress_file)
-        return
+    # Usa o loop principal de processamento genérico
+    main_processing_loop(
+        args=args,
+        llm_client=llm_client,
+        all_items=all_questions,
+        item_type="perguntas",
+        progress_file=progress_file,
+        output_file_header="Categoria\tID Pergunta\tFrase Gerada\tV/F\tFrase Correcta\n",
+        build_prompt_func=build_generate_prompt,
+        parse_output_func=parse_generate_output,
+        write_item_func=lambda f, item: f.write(
+            f"{all_questions[item['id']-1]['categoria']}\t{item['id']}\t{item['frase']}\t{item['vf']}\t{item['correcta']}\n"
+        )
+    )
 
-    print(f"Perguntas a processar nesta sessão: {len(questions_to_process)}")
-    id_to_cat = {q["id"]: q["categoria"] for q in all_questions}
-
-    try:
-        with open(args.output_file, "a", encoding="utf-8") as f:
-            if f.tell() == 0:
-                f.write("Categoria\tID Pergunta\tFrase Gerada\tV/F\tFrase Correcta\n")
-                f.flush()
-
-            total_to_process = len(questions_to_process)
-            for i in range(0, total_to_process, args.batch_size):
-                batch = questions_to_process[i:i + args.batch_size]
-                num_processed_total = len(processed_ids)
-                print(f"\nA processar lote de {len(batch)} perguntas (Total já feito: {num_processed_total} / {len(all_questions)})", end="")
-                
-                batch_prompt = build_generate_prompt(batch)
-                parsed_items = process_batch_with_retries(llm_client, batch_prompt, args.max_retries, args.initial_sleep, parse_generate_output)
-
-                if parsed_items:
-                    batch_ids = {item['id'] for item in parsed_items}
-                    for item in parsed_items:
-                        cat = id_to_cat.get(item["id"], "desconhecida")
-                        f.write(f"{cat}\t{item['id']}\t{item['frase']}\t{item['vf']}\t{item['correcta']}\n")
-                    f.flush(); os.fsync(f.fileno())
-
-                    processed_ids.update(batch_ids)
-                    with open(progress_file, "w", encoding="utf-8") as pf:
-                        json.dump({"output_file": args.output_file, "processed_question_ids": list(processed_ids)}, pf, indent=2)
-                    print(f"Lote processado e guardado com sucesso.")
-
-                if i + args.batch_size < total_to_process and args.sleep > 0:
-                    print(f"A aguardar {args.sleep} segundos...")
-                    time.sleep(args.sleep)
-    except IOError as e:
-        print(f"Erro ao escrever no ficheiro de saída '{args.output_file}': {e}")
-        sys.exit(1)
-
-    print(f"\nTrabalho 'generate' concluído. {len(processed_ids)} perguntas processadas no total.")
-    if os.path.exists(progress_file): os.remove(progress_file)
-
-# ==========================
+# ========================== 
 # LÓGICA DO MODO "VALIDATE"
-# ==========================
+# ========================== 
 VALIDATE_SYSTEM_PROMPT = (
     "És um assistente especialista em anatomia e fisiologia, incumbido de validar a veracidade de afirmações.\n"
     "Para cada linha recebida, que contém uma afirmação e se ela foi marcada como Verdadeira (V) ou Falsa (F), deves:\n"
@@ -266,6 +241,7 @@ VALIDATE_SYSTEM_PROMPT = (
     "ID_LINHA | CONFIANÇA_% | EXPLICAÇÃO_CURTA_COM_URL"
 )
 VALIDATE_FEW_SHOT = """
+
 EXEMPLO:
 INPUT:
 1 | Sistema Locomotor | 1 | O músculo Redondo Maior não pertence ao manguito rotador. | V | 
@@ -306,13 +282,12 @@ def parse_validate_output(text: str) -> List[Dict[str, Any]]:
     return results
 
 def run_validate_mode(args: argparse.Namespace, llm_client: LLMClient):
-    llm_client.system_prompt = VALIDATE_SYSTEM_PROMPT # Define o system_prompt aqui
+    llm_client.system_prompt = VALIDATE_SYSTEM_PROMPT
 
     try:
         with open(args.input_file, "r", encoding="utf-8") as f:
-            # Ignora o cabeçalho ao ler as linhas
             reader = csv.reader(f, delimiter='\t')
-            header = next(reader)
+            header = next(reader) # Guarda o cabeçalho original
             all_lines = [{"id": i+1, "content": "\t".join(row), "data": row} for i, row in enumerate(reader)]
     except FileNotFoundError:
         print(f"Erro: Ficheiro de entrada não encontrado em '{args.input_file}'")
@@ -324,77 +299,127 @@ def run_validate_mode(args: argparse.Namespace, llm_client: LLMClient):
     print(f"Lidas {len(all_lines)} linhas do ficheiro '{args.input_file}'.")
 
     progress_file = "validate_progress.json"
+
+    # Define a função write_item para o modo validate
+    def write_validate_item(f_out, original_line_data, validated_data):
+        writer = csv.writer(f_out, delimiter='\t')
+        writer.writerow(original_line_data + [validated_data['confidence'], validated_data['rationale']])
+
+    # Usa o loop principal de processamento genérico
+    main_processing_loop(
+        args=args,
+        llm_client=llm_client,
+        all_items=all_lines,
+        item_type="linhas",
+        progress_file=progress_file,
+        output_file_header=header + ["Confiança (%)", "Racional"], # Passa o cabeçalho original + novos
+        build_prompt_func=build_validate_prompt,
+        parse_output_func=parse_validate_output,
+        write_item_func=write_validate_item,
+        output_data_key='data' # Chave para os dados originais do item
+    )
+
+# ========================== 
+# LOOP DE PROCESSAMENTO PRINCIPAL (GENÉRICO)
+# ========================== 
+def main_processing_loop(
+    args: argparse.Namespace,
+    llm_client: LLMClient,
+    all_items: List[Dict[str, Any]],
+    item_type: str,
+    progress_file: str,
+    output_file_header: List[str],
+    build_prompt_func: Callable,
+    parse_output_func: Callable,
+    write_item_func: Callable,
+    output_data_key: str = None
+):
+    start_time = time.time()
     processed_ids = set()
+    
+    # Carregar estado anterior, se existir
     try:
         if os.path.exists(progress_file):
             with open(progress_file, "r", encoding="utf-8") as pf:
                 progress_data = json.load(pf)
                 if progress_data.get("output_file") == args.output_file:
-                    processed_ids = set(progress_data.get("processed_line_ids", []))
-                    print(f"Retomando trabalho. {len(processed_ids)} linhas já foram validadas.")
+                    processed_ids = set(progress_data.get("processed_item_ids", []))
+                    print(f"Retomando trabalho. {len(processed_ids)} {item_type} já foram processadas.")
     except (IOError, json.JSONDecodeError) as e:
         print(f"Aviso: Não foi possível ler o ficheiro de progresso '{progress_file}': {e}. A começar do início.")
-
-    lines_to_process = [line for line in all_lines if line["id"] not in processed_ids]
-    if not lines_to_process:
-        print("Todas as linhas já foram validadas.")
+    
+    items_to_process = [item for item in all_items if item["id"] not in processed_ids]
+    
+    if not items_to_process:
+        print(f"Todas as {item_type} já foram processadas. Trabalho concluído.")
         if os.path.exists(progress_file): os.remove(progress_file)
         return
 
-    print(f"Linhas a validar nesta sessão: {len(lines_to_process)}")
+    print(f"{len(items_to_process)} {item_type} a processar nesta sessão.")
     
     try:
-        with open(args.output_file, "a", encoding="utf-8") as f_out:
+        with open(args.output_file, "a", encoding="utf-8", newline='') as f_out:
             writer = csv.writer(f_out, delimiter='\t')
             if f_out.tell() == 0:
-                writer.writerow(header + ["Confiança (%)", "Racional"])
+                writer.writerow(output_file_header)
                 f_out.flush()
 
-            total_to_process = len(lines_to_process)
-            for i in range(0, total_to_process, args.batch_size):
-                batch = lines_to_process[i:i + args.batch_size]
-                num_processed_total = len(processed_ids)
-                print(f"\nA validar lote de {len(batch)} linhas (Total já feito: {num_processed_total} / {len(all_lines)})", end="")
-
-                batch_prompt = build_validate_prompt(batch)
-                output_text = process_batch_with_retries(llm_client, batch_prompt, args.max_retries, args.initial_sleep, parse_validate_output)
+            total_items = len(all_items)
+            processed_in_this_session = 0
+            
+            for i in range(0, len(items_to_process), args.batch_size):
+                batch = items_to_process[i:i + args.batch_size]
                 
-                # A função process_batch_with_retries já retorna a lista de dicionários processada
-                parsed_items = output_text 
+                elapsed_time = time.time() - start_time
+                current_total_processed = len(processed_ids) + processed_in_this_session
                 
-                parsed_map = {item['id']: item for item in parsed_items}
+                status_message = f"\nA processar lote de {len(batch)} {item_type} (Total já feito: {current_total_processed} / {total_items})"
+                if elapsed_time > 1 and processed_in_this_session > 0:
+                    rate = processed_in_this_session / elapsed_time
+                    remaining_items = total_items - current_total_processed
+                    etr_seconds = remaining_items / rate if rate > 0 else 0
+                    status_message += f" | Decorrido: {format_time(elapsed_time)} | ETR: {format_time(etr_seconds)}"
+                print(status_message, end="")
 
-                if output_text: # Se houver output para ser parsed
-                    batch_ids = []
-                    for line_item in batch:
-                        line_id = line_item['id']
-                        if line_id in parsed_map:
-                            validated_data = parsed_map[line_id]
-                            writer.writerow(line_item['data'] + [validated_data['confidence'], validated_data['rationale']])
-                            batch_ids.append(line_id)
+                batch_prompt = build_prompt_func(batch)
+                parsed_results = process_batch_with_retries(llm_client, batch_prompt, args.max_retries, args.initial_sleep, parse_output_func)
+                
+                if parsed_results:
+                    batch_ids_processed = set()
+                    parsed_map = {item['id']: item for item in parsed_results}
                     
-                    f_out.flush(); os.fsync(f_out.fileno())
+                    for original_item in batch:
+                        item_id = original_item['id']
+                        if item_id in parsed_map:
+                            data_to_write = original_item.get(output_data_key) if output_data_key else original_item
+                            write_item_func(writer, data_to_write, parsed_map[item_id])
+                            batch_ids_processed.add(item_id)
+                    
+                    f_out.flush()
+                    os.fsync(f_out.fileno())
 
-                    processed_ids.update(batch_ids)
+                    processed_ids.update(batch_ids_processed)
+                    processed_in_this_session += len(batch_ids_processed)
+
                     with open(progress_file, "w", encoding="utf-8") as pf:
-                        json.dump({"output_file": args.output_file, "processed_line_ids": list(processed_ids)}, pf, indent=2)
-                    print(f"Lote validado e guardado com sucesso.")
+                        json.dump({"output_file": args.output_file, "processed_item_ids": list(processed_ids)}, pf, indent=2)
+                    print(f" Lote processado e guardado com sucesso.")
 
-                if i + args.batch_size < total_to_process and args.sleep > 0:
+                if i + args.batch_size < len(items_to_process) and args.sleep > 0:
                     print(f"A aguardar {args.sleep} segundos...")
                     time.sleep(args.sleep)
 
     except IOError as e:
-        print(f"Erro ao escrever no ficheiro de saída '{args.output_file}': {e}")
+        print(f"\nErro ao escrever no ficheiro de saída '{args.output_file}': {e}")
+        log_error(f"Erro de escrita no ficheiro de saída: {e}")
         sys.exit(1)
 
-    print(f"\nTrabalho 'validate' concluído. {len(processed_ids)} linhas validadas no total.")
+    print(f"\nTrabalho '{args.mode}' concluído. {len(processed_ids)} {item_type} processadas no total.")
     if os.path.exists(progress_file): os.remove(progress_file)
 
-
-# ==========================
+# ========================== 
 # FUNÇÃO PRINCIPAL (MAIN)
-# ==========================
+# ========================== 
 def main():
     prefs = Preferences()
     
@@ -422,7 +447,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Configuração do cliente LLM
     provider = args.provider
     api_key = prefs.get_llm_api_key(provider)
     model = args.model or prefs.get_llm_model(provider)
@@ -431,12 +455,8 @@ def main():
         print(f"Erro: A API key para '{provider}' não está definida nas preferências (data/preferences.json).")
         sys.exit(1)
 
-    # Criação do cliente LLM
-    # O system_prompt é agora definido dentro das funções de modo (run_generate_mode, run_validate_mode)
-    # para permitir que o LLMClient seja instanciado uma única vez
     llm_client = LLMClient(provider=provider, api_key=api_key, model=model, system_prompt="") # system_prompt vazio aqui
 
-    # Executa o modo selecionado
     if args.mode == 'generate':
         run_generate_mode(args, llm_client)
     elif args.mode == 'validate':
