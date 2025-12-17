@@ -16,7 +16,7 @@ from data.preferences import Preferences
 # CONSTANTES E CONFIGURAÇÕES GLOBAIS
 # ========================== 
 DEFAULT_BATCH_SIZE = 10
-DEFAULT_SLEEP_SECONDS = 2
+DEFAULT_SLEEP_SECONDS = 10
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_INITIAL_SLEEP = 5
 ERROR_LOG_FILE = "gift2boolean_error.log"
@@ -301,8 +301,7 @@ def run_validate_mode(args: argparse.Namespace, llm_client: LLMClient):
     progress_file = "validate_progress.json"
 
     # Define a função write_item para o modo validate
-    def write_validate_item(f_out, original_line_data, validated_data):
-        writer = csv.writer(f_out, delimiter='\t')
+    def write_validate_item(writer, original_line_data, validated_data):
         writer.writerow(original_line_data + [validated_data['confidence'], validated_data['rationale']])
 
     # Usa o loop principal de processamento genérico
@@ -447,9 +446,17 @@ def main():
 
     args = parser.parse_args()
 
+    print(f"DEBUG: args.provider = {args.provider}")
+    print(f"DEBUG: prefs.get_llm_provider() = {prefs.get_llm_provider()}")
     provider = args.provider
+    print(f"DEBUG: provider (after args assignment) = {provider}")
+
     api_key = prefs.get_llm_api_key(provider)
+    
+    print(f"DEBUG: args.model = {args.model}")
+    print(f"DEBUG: prefs.get_llm_model(provider) = {prefs.get_llm_model(provider)}")
     model = args.model or prefs.get_llm_model(provider)
+    print(f"DEBUG: model (after args assignment) = {model}")
 
     if not api_key:
         print(f"Erro: A API key para '{provider}' não está definida nas preferências (data/preferences.json).")
