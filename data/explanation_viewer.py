@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QWidget, QSizePolicy
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QKeyEvent, QDesktopServices
 
 try:
@@ -30,6 +30,9 @@ try:
             if nav_type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked:
                 if self.open_links_external:
                     # Abre no browser externo
+                    # Ensure url is a QUrl object
+                    if isinstance(url, str):
+                        url = QUrl(url)
                     QDesktopServices.openUrl(url)
                     return False
                 # Deixa abrir internamente (default)

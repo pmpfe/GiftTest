@@ -11925,3 +11925,19 @@ INPUT:
 80 | Sistema Locomotor	15	A omoplata (escápula) apresenta uma incisura jugular.	F	A omoplata (escápula)
 
 ----------
+[2025-12-22 08:51:14] Erro na tentativa 1: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-3-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+
+[2025-12-22 08:51:19] Erro na tentativa 2: HTTP 404: {
+  "error": {
+    "code": 404,
+    "message": "models/gemini-3-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+    "status": "NOT_FOUND"
+  }
+}
+

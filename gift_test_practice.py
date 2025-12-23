@@ -94,7 +94,12 @@ class GIFT_TestApp(QMainWindow):
     def _apply_configured_geometry(self):
         """Aplica tamanho da janela baseado nas preferências."""
         width_percent, height_percent = self.preferences.get_main_window_size_percent()
-        screen = QApplication.primaryScreen().geometry()
+        primary_screen = QApplication.primaryScreen()
+        if primary_screen is None:
+            # Fallback if no screen is available (headless or display issues)
+            self.resize(800, 600)
+            return
+        screen = primary_screen.geometry()
         w = int(screen.width() * width_percent / 100)
         h = int(screen.height() * height_percent / 100)
         self.resize(w, h)
@@ -344,7 +349,7 @@ class GIFT_TestApp(QMainWindow):
         # Open dialog and keep references
         dialog, viewer_widget, meta_label = show_explanation(
             self,
-            f"Explicação da Pergunta {qnum}",
+            f"Explicação: {qnum}",
             loading_html,
             question_text=question.text,
             question_options=question.options,

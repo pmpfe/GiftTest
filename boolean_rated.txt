@@ -1,0 +1,1 @@
+Categoria	ID Pergunta	Frase Gerada	V/F	Frase Correcta	Confiança (%)	Racional
