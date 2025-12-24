@@ -347,107 +347,133 @@ class GIFT_TestApp(QMainWindow):
         """
 
         # Open dialog and keep references
-        dialog, viewer_widget, meta_label = show_explanation(
+        dialog, viewer_widget, time_label, explain_btn = show_explanation(
             self,
             f"Explicação: {qnum}",
             loading_html,
             question_text=question.text,
             question_options=question.options,
-            metadata={'provider': provider, 'model': model}
+            metadata={'provider': provider, 'model': model},
+            on_reexplain_callback=lambda p, m: generate_explanation(p, m)
         )
 
-        # Start worker thread
-        try:
+        # Keep references
+        dialog_ref = [dialog]
+        viewer_ref = [viewer_widget]
+        time_label_ref = [time_label]
+        explain_btn_ref = [explain_btn]
+
+        start_time = time.time()
+
+        def on_success(result):
+            # Check if dialog still exists
+            if not dialog_ref[0] or not dialog_ref[0].isVisible():
+                return
+
+            end_time = time.time()
+            duration = end_time - start_time
+
+            # Update time label
+            time_text = f"Tempo: {duration:.2f}s"
+            try:
+                if time_label_ref[0]:
+                    time_label_ref[0].setText(time_text)
+            except (RuntimeError, AttributeError):
+                # Dialog was closed or widget destroyed
+                pass
+
+            # Wrap plaintext in monospace HTML if no HTML tags detected
+            if not ("<p>" in result or "<div" in result or "<html" in result or "<ul" in result):
+                escaped = result.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                html = f"<html><body><pre style='white-space:pre-wrap;font-family:monospace;'>{escaped}</pre></body></html>"
+            else:
+                html = result
+
+            # Update viewer content
+            try:
+                if viewer_ref[0] and hasattr(viewer_ref[0], 'setHtml'):  # QWebEngineView
+                    # Re-apply style
+                    html_with_style = f"""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            body {{
+                                font-family: Arial, Helvetica, sans-serif;
+                                line-height: 1.6;
+                                padding: 10px;
+                            }}
+                        </style>
+                    </head>
+                    <body>
+                        {html}
+                    </body>
+                    </html>
+                    """
+                    viewer_ref[0].setHtml(html_with_style)
+                elif viewer_ref[0]:  # QTextEdit fallback
+                    viewer_ref[0].setPlainText(re.sub(r"<[^>]+>", "", html))
+            except (RuntimeError, AttributeError):
+                # Dialog was closed or widget destroyed, ignore
+                pass
+
+            # Re-enable button
+            try:
+                if explain_btn_ref[0]:
+                    explain_btn_ref[0].setEnabled(True)
+            except:
+                pass
+
+        def on_error(err_msg):
+            # Check if dialog still exists
+            if not dialog_ref[0] or not dialog_ref[0].isVisible():
+                return
+
+            error_html = f"""
+            <div style='color:red; padding:20px; font-family:sans-serif;'>
+                <h3>Erro na geração</h3>
+                <p>{err_msg}</p>
+            </div>
+            """
+            try:
+                if viewer_ref[0] and hasattr(viewer_ref[0], 'setHtml'):
+                    viewer_ref[0].setHtml(error_html)
+                elif viewer_ref[0]:
+                    viewer_ref[0].setPlainText(err_msg)
+            except (RuntimeError, AttributeError):
+                pass
+
+            # Re-enable button
+            try:
+                if explain_btn_ref[0]:
+                    explain_btn_ref[0].setEnabled(True)
+            except:
+                pass
+
+        # Function to generate explanation
+        def generate_explanation(new_provider=None, new_model=None):
+            nonlocal provider, model, start_time
+            if new_provider:
+                provider = new_provider
+            if new_model:
+                model = new_model
             start_time = time.time()
+            key = self.preferences.get_llm_api_key(provider)
             client = LLMClient(provider, key, model, self.preferences.get_llm_system_prompt())
             self._llm_worker = LLMWorker(client, prompt)
-
-            # Keep references to dialog components for callbacks
-            dialog_ref = [dialog]  # Use list to capture by reference
-            viewer_ref = [viewer_widget]
-            meta_ref = [meta_label]
-
-            def on_success(result):
-                # Check if dialog still exists
-                if not dialog_ref[0] or not dialog_ref[0].isVisible():
-                    return
-
-                end_time = time.time()
-                duration = end_time - start_time
-
-                # Update metadata label
-                meta_text = f"Provider: {provider} | Modelo: {model} | Tempo: {duration:.2f}s"
-                try:
-                    if meta_ref[0]:
-                        meta_ref[0].setText(meta_text)
-                except (RuntimeError, AttributeError):
-                    # Dialog was closed or widget destroyed
-                    pass
-
-                # Wrap plaintext in monospace HTML if no HTML tags detected
-                if not ("<p>" in result or "<div" in result or "<html" in result or "<ul" in result):
-                    escaped = result.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                    html = f"<html><body><pre style='white-space:pre-wrap;font-family:monospace;'>{escaped}</pre></body></html>"
-                else:
-                    html = result
-
-                # Update viewer content
-                try:
-                    if viewer_ref[0] and hasattr(viewer_ref[0], 'setHtml'):  # QWebEngineView
-                        # Re-apply style
-                        html_with_style = f"""
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="UTF-8">
-                            <style>
-                                body {{
-                                    font-family: Arial, Helvetica, sans-serif;
-                                    line-height: 1.6;
-                                    padding: 10px;
-                                }}
-                            </style>
-                        </head>
-                        <body>
-                            {html}
-                        </body>
-                        </html>
-                        """
-                        viewer_ref[0].setHtml(html_with_style)
-                    elif viewer_ref[0]:  # QTextEdit fallback
-                        viewer_ref[0].setPlainText(re.sub(r"<[^>]+>", "", html))
-                except (RuntimeError, AttributeError):
-                    # Dialog was closed or widget destroyed, ignore
-                    pass
-
-            def on_error(err_msg):
-                # Check if dialog still exists
-                if not dialog_ref[0] or not dialog_ref[0].isVisible():
-                    return
-
-                error_html = f"""
-                <div style='color:red; padding:20px; font-family:sans-serif;'>
-                    <h3>Erro na geração</h3>
-                    <p>{err_msg}</p>
-                </div>
-                """
-                try:
-                    if viewer_ref[0] and hasattr(viewer_ref[0], 'setHtml'):
-                        viewer_ref[0].setHtml(error_html)
-                    elif viewer_ref[0]:
-                        viewer_ref[0].setPlainText(f"Erro: {err_msg}")
-                    QMessageBox.critical(self, "Erro LLM", err_msg)
-                except (RuntimeError, AttributeError):
-                    # Dialog was closed or widget destroyed
-                    pass
-
+            # Update time_label to loading
+            try:
+                if time_label_ref[0]:
+                    time_label_ref[0].setText("A gerar...")
+            except:
+                pass
             self._llm_worker.finished.connect(on_success)
             self._llm_worker.error.connect(on_error)
             self._llm_worker.start()
 
-        except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Falha ao iniciar cliente LLM: {e}")
-            dialog.close()
+        # Start initial worker
+        generate_explanation()
 
     def clear_history(self):
         """Limpa todo o histórico de testes."""

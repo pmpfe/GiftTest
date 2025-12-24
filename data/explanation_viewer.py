@@ -9,10 +9,12 @@ import sys
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTextEdit, QWidget, QSizePolicy
+    QTextEdit, QWidget, QSizePolicy, QComboBox
 )
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QKeyEvent, QDesktopServices
+
+from .llm_client import LLMClient
 
 try:
     from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -30,10 +32,10 @@ try:
             if nav_type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked:
                 if self.open_links_external:
                     # Abre no browser externo
-                    # Ensure url is a QUrl object
-                    if isinstance(url, str):
-                        url = QUrl(url)
-                    QDesktopServices.openUrl(url)
+                    try:
+                        subprocess.run(['xdg-open', url.toString()], check=False)
+                    except Exception:
+                        pass
                     return False
                 # Deixa abrir internamente (default)
             return super().acceptNavigationRequest(url, nav_type, is_main_frame)
@@ -47,7 +49,8 @@ def show_explanation(
         parent, title: str, html_content: str,
         question_text: str | None = None,
         question_options: list | None = None,
-        metadata: dict | None = None):
+        metadata: dict | None = None,
+        on_reexplain_callback=None):
     """Shows explanation in a dialog with HTML rendering support.
 
     Args:
@@ -91,7 +94,7 @@ def show_explanation(
     header_layout.setContentsMargins(0, 0, 0, 4)
     header_layout.setSpacing(12)
 
-    # Left side: Title + Metadata
+    # Left side: Title + Controls
     left_col = QWidget()
     left_layout = QVBoxLayout(left_col)
     left_layout.setContentsMargins(0, 0, 0, 0)
@@ -104,17 +107,96 @@ def show_explanation(
     title_label.setFont(title_font)
     left_layout.addWidget(title_label)
 
-    # Metadata label (initially empty or loading)
-    meta_label = QLabel()
-    meta_label.setStyleSheet("color: #666; font-size: 11px;")
-    if metadata:
-        meta_text = f"Provider: {metadata.get('provider', '?')} | Modelo: {metadata.get('model', '?')}"
-        if 'time' in metadata:
-            meta_text += f" | Tempo: {metadata['time']:.2f}s"
-        meta_label.setText(meta_text)
+    # Provider and Model controls
+    providers = ['groq', 'huggingface', 'gemini', 'mistral', 'perplexity', 'openrouter', 'cloudflare']
+    initial_provider = metadata.get('provider', 'groq') if metadata else 'groq'
+    initial_model = metadata.get('model', '') if metadata else ''
+
+    # Provider combo
+    provider_layout = QHBoxLayout()
+    provider_label = QLabel("Provider:")
+    provider_combo = QComboBox()
+    provider_combo.addItems(providers)
+    provider_combo.setCurrentText(initial_provider)
+    provider_layout.addWidget(provider_label)
+    provider_layout.addWidget(provider_combo)
+    left_layout.addLayout(provider_layout)
+
+    # Model combo
+    model_layout = QHBoxLayout()
+    model_label = QLabel("Modelo:")
+    model_combo = QComboBox()
+    # Populate initial models
+    if hasattr(parent, 'preferences'):
+        prefs = parent.preferences
+        key = prefs.get_llm_api_key(initial_provider)
+        if key:
+            try:
+                models = client.list_models()
+                model_ids = sorted([m['id'] for m in models], key=str.lower)
+                model_combo.addItems(model_ids)
+                if initial_model:
+                    model_combo.setCurrentText(initial_model)
+            except Exception:
+                # Fallback to default
+                default_model = prefs.get_llm_model(initial_provider)
+                model_combo.addItem(default_model)
+                model_combo.setCurrentText(default_model)
+        else:
+            default_model = prefs.get_llm_model(initial_provider)
+            model_combo.addItem(default_model)
+    model_layout.addWidget(model_label)
+    model_layout.addWidget(model_combo)
+    left_layout.addLayout(model_layout)
+
+    # Explain button
+    explain_btn = QPushButton("Obter explicação")
+    explain_btn.setEnabled(True)  # Always enabled
+    left_layout.addWidget(explain_btn)
+
+    # Time label
+    time_label = QLabel()
+    time_label.setStyleSheet("color: #666; font-size: 11px;")
+    if metadata and 'time' in metadata:
+        time_label.setText(f"Tempo: {metadata['time']:.2f}s")
     else:
-        meta_label.setText("A carregar...")
-    left_layout.addWidget(meta_label)
+        time_label.setText("")
+    left_layout.addWidget(time_label)
+
+    def update_model_combo():
+        current_provider = provider_combo.currentText()
+        model_combo.clear()
+        if hasattr(parent, 'preferences'):
+            prefs = parent.preferences
+            key = prefs.get_llm_api_key(current_provider)
+            if key:
+                try:
+                    models = client.list_models()
+                    model_ids = sorted([m['id'] for m in models], key=str.lower)
+                    model_combo.addItems(model_ids)
+                    # Set to default if available
+                    default_model = prefs.get_llm_model(current_provider)
+                    if default_model in [m['id'] for m in models]:
+                        model_combo.setCurrentText(default_model)
+                except Exception:
+                    default_model = prefs.get_llm_model(current_provider)
+                    model_combo.addItem(default_model)
+            else:
+                default_model = prefs.get_llm_model(current_provider)
+                model_combo.addItem(default_model)
+
+    # Connect signals
+    provider_combo.currentTextChanged.connect(update_model_combo)
+
+    # Callback for explain button
+    def on_explain():
+        if on_reexplain_callback:
+            new_provider = provider_combo.currentText()
+            new_model = model_combo.currentText()
+            explain_btn.setEnabled(False)  # Disable while processing
+            on_reexplain_callback(new_provider, new_model)
+
+    explain_btn.clicked.connect(on_explain)
 
     header_layout.addWidget(left_col, 35)
 
@@ -253,5 +335,5 @@ def show_explanation(
     dialog.show()
 
     # Return dialog and viewer to allow updates
-    return dialog, viewer if HAS_WEBENGINE else txt, meta_label
+    return dialog, viewer if HAS_WEBENGINE else txt, time_label, explain_btn
 

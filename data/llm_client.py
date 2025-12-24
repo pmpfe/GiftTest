@@ -13,7 +13,7 @@ from pathlib import Path
 
 GROQ_BASE = "https://api.groq.com/openai/v1"
 HF_MODELS_LIST = "https://huggingface.co/api/models?pipeline_tag=text-generation&sort=downloads&direction=-1&limit=50"
-HF_INFER_BASE = "https://api-inference.huggingface.co/models"
+HF_INFER_BASE = "https://router.huggingface.co/models"
 GEMINI_LIST = "https://generativelanguage.googleapis.com/v1beta/models"
 GEMINI_GEN_TEMPLATE = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
 

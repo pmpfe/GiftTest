@@ -313,6 +313,8 @@ class SettingsScreen:
             self.models_combo.clear()
             if models:
                 if isinstance(models[0], dict):
+                    # Sort models alphabetically by id (case insensitive)
+                    models = sorted(models, key=lambda m: m['id'].lower())
                     for m in models:
                         self.models_combo.addItem(m['id'])
                         if m.get('description'):
@@ -328,6 +330,7 @@ class SettingsScreen:
                     else:
                         self.models_combo.setCurrentIndex(0)
                 else:
+                    models = sorted(models, key=str.lower)
                     self.models_combo.addItems(models)
                     # Restore previously selected model if available
                     if saved_model and saved_model in models:
