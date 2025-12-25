@@ -101,12 +101,60 @@ class LLMClient:
             ]
             with self._log_file.open('a', encoding='utf-8') as f:
                 f.write("\n".join(log_err) + "\n\n")
-            raise LLMError(f"HTTP {status}: {err_body_str}", status_code=status, headers=err_headers, body=err_body_str)
+
+            # Avoid dumping very large HTML error pages into the UI; full body remains in http_log.txt.
+            preview = err_body_str
+            if len(preview) > 800:
+                preview = preview[:800] + "..."
+
+            if status == 401 and ("cloudflare" in err_body_str.lower() or "authorization required" in err_body_str.lower()):
+                preview = (
+                    "401 Authorization Required (Perplexity). "
+                    "Verifica a API key e se o teu utilizador está associado a um API Group. "
+                    "Detalhes completos em http_log.txt.\n\n" + preview
+                )
+
+            raise LLMError(f"HTTP {status}: {preview}", status_code=status, headers=err_headers, body=err_body_str)
         except Exception as e:
             log_exc = [f"[{ts}] EXCEPTION", str(e)]
             with self._log_file.open('a', encoding='utf-8') as f:
                 f.write("\n".join(log_exc) + "\n\n")
             raise
+
+    def _normalize_perplexity_model(self, model: str) -> str:
+        """Normalize Perplexity model names to the current Sonar catalog.
+
+        Perplexity has historically used multiple naming schemes. The API reference
+        currently documents: sonar, sonar-pro, sonar-deep-research, sonar-reasoning-pro.
+
+        We accept older IDs and map them to the closest supported model.
+        """
+        raw = (model or "").strip()
+        if not raw:
+            return "sonar-pro"
+
+        lower = raw.lower()
+        allowed = {"sonar", "sonar-pro", "sonar-deep-research", "sonar-reasoning-pro"}
+        if lower in allowed:
+            # Preserve original casing from docs (all lowercase).
+            return lower
+
+        legacy_map = {
+            "sonar-reasoning": "sonar-reasoning-pro",
+            "sonar-reasoning": "sonar-reasoning-pro",
+            "llama-3.1-sonar-small-128k-online": "sonar",
+            "llama-3.1-sonar-large-128k-online": "sonar-pro",
+            "llama-3.1-sonar-huge-128k-online": "sonar-pro",
+        }
+        if lower in legacy_map:
+            return legacy_map[lower]
+
+        # Best-effort fallbacks for unknown/legacy values.
+        if "reason" in lower:
+            return "sonar-reasoning-pro"
+        if "deep" in lower or "research" in lower:
+            return "sonar-deep-research"
+        return "sonar-pro"
 
     # --- Listing models ---
     def list_models(self) -> List[dict]:
@@ -243,15 +291,15 @@ class LLMClient:
 
     def _perplexity_list_models(self) -> List[dict]:
         """Return curated list of Perplexity models (no public API endpoint)."""
-        # Perplexity does not provide a public model listing endpoint
+        # Perplexity does not provide a public model listing endpoint.
+        # Keep this list aligned with the official API reference.
         models = [
-            "llama-3.1-sonar-small-128k-online",
-            "llama-3.1-sonar-large-128k-online",
-            "llama-3.1-sonar-huge-128k-online",
+            "sonar",
+            "sonar-pro",
+            "sonar-deep-research",
             "sonar-reasoning-pro",
-            "sonar-reasoning"
         ]
-        return [{'id': m, 'description': 'Perplexity Online Model'} for m in models]
+        return [{'id': m, 'description': 'Perplexity Sonar Model'} for m in models]
 
     def _openrouter_list_models(self) -> List[dict]:
         """List available OpenRouter models (public endpoint)."""
@@ -368,6 +416,8 @@ class LLMClient:
                 first = models[0]
                 model = first['id'] if isinstance(first, dict) else first
         model = (model or "").strip()
+        if self.provider == "perplexity":
+            model = self._normalize_perplexity_model(model)
 
         if not self.api_key:
             raise LLMError(f"API key em falta para {self.provider}.")

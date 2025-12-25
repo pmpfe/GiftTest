@@ -130,21 +130,22 @@ def show_explanation(
     if hasattr(parent, 'preferences'):
         prefs = parent.preferences
         key = prefs.get_llm_api_key(initial_provider)
-        if key:
-            try:
-                models = client.list_models()
-                model_ids = sorted([m['id'] for m in models], key=str.lower)
+        try:
+            client = LLMClient(initial_provider, key, system_prompt=prefs.get_llm_system_prompt())
+            models = client.list_models()
+            model_ids = sorted([m['id'] for m in models if isinstance(m, dict) and m.get('id')], key=str.lower)
+            if model_ids:
                 model_combo.addItems(model_ids)
-                if initial_model:
+                if initial_model and initial_model in model_ids:
                     model_combo.setCurrentText(initial_model)
-            except Exception:
-                # Fallback to default
-                default_model = prefs.get_llm_model(initial_provider)
+            else:
+                raise RuntimeError("empty model list")
+        except Exception:
+            # Fallback to default
+            default_model = prefs.get_llm_model(initial_provider)
+            if default_model:
                 model_combo.addItem(default_model)
                 model_combo.setCurrentText(default_model)
-        else:
-            default_model = prefs.get_llm_model(initial_provider)
-            model_combo.addItem(default_model)
     model_layout.addWidget(model_label)
     model_layout.addWidget(model_combo)
     left_layout.addLayout(model_layout)
@@ -169,21 +170,22 @@ def show_explanation(
         if hasattr(parent, 'preferences'):
             prefs = parent.preferences
             key = prefs.get_llm_api_key(current_provider)
-            if key:
-                try:
-                    models = client.list_models()
-                    model_ids = sorted([m['id'] for m in models], key=str.lower)
+            try:
+                # Perplexity does not require an API key to list models (curated list).
+                client = LLMClient(current_provider, key, system_prompt=prefs.get_llm_system_prompt())
+                models = client.list_models()
+                model_ids = sorted([m['id'] for m in models if isinstance(m, dict) and m.get('id')], key=str.lower)
+                if model_ids:
                     model_combo.addItems(model_ids)
-                    # Set to default if available
                     default_model = prefs.get_llm_model(current_provider)
-                    if default_model in [m['id'] for m in models]:
+                    if default_model and default_model in model_ids:
                         model_combo.setCurrentText(default_model)
-                except Exception:
-                    default_model = prefs.get_llm_model(current_provider)
-                    model_combo.addItem(default_model)
-            else:
+                    return
+                raise RuntimeError("empty model list")
+            except Exception:
                 default_model = prefs.get_llm_model(current_provider)
-                model_combo.addItem(default_model)
+                if default_model:
+                    model_combo.addItem(default_model)
 
     # Connect signals
     provider_combo.currentTextChanged.connect(update_model_combo)
