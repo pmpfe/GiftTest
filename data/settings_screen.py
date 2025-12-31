@@ -136,44 +136,6 @@ class SettingsScreen:
         layout.addWidget(ui_grp)
         layout.addSpacing(15)
 
-        # Links behavior
-        links_grp = QGroupBox("Comportamento de Links")
-        links_layout = QHBoxLayout()
-
-        links_layout.addWidget(QLabel("Abrir links da explicação:"))
-
-        self.links_combo = QComboBox()
-        self.links_combo.addItem("No browser de sistema", "browser")
-        self.links_combo.addItem("Dentro da aplicação", "internal")
-        current_behavior = self.app.preferences.get_explanation_links_behavior()
-        index = 0 if current_behavior == 'browser' else 1
-        self.links_combo.setCurrentIndex(index)
-        links_layout.addWidget(self.links_combo)
-        links_layout.addStretch()
-
-        links_grp.setLayout(links_layout)
-        layout.addWidget(links_grp)
-        layout.addSpacing(15)
-
-        # HTML Renderer
-        renderer_grp = QGroupBox("Renderizador HTML")
-        renderer_layout = QHBoxLayout()
-
-        renderer_layout.addWidget(QLabel("Motor de renderização:"))
-
-        self.renderer_combo = QComboBox()
-        self.renderer_combo.addItem("WebEngine (completo, ~150MB)", "webengine")
-        self.renderer_combo.addItem("TextBrowser (leve, ~0MB)", "textbrowser")
-        current_renderer = self.app.preferences.get_html_renderer()
-        index = 0 if current_renderer == 'webengine' else 1
-        self.renderer_combo.setCurrentIndex(index)
-        renderer_layout.addWidget(self.renderer_combo)
-        renderer_layout.addStretch()
-
-        renderer_grp.setLayout(renderer_layout)
-        layout.addWidget(renderer_grp)
-        layout.addSpacing(15)
-
         # Teste rápido
         quick_test_grp = QGroupBox("Teste Rápido")
         quick_layout = QHBoxLayout()
@@ -434,12 +396,6 @@ class SettingsScreen:
                 self.expl_width_spin.value(),
                 self.expl_height_spin.value()
             )
-        if hasattr(self, 'links_combo'):
-            behavior = self.links_combo.currentData()
-            prefs.set_explanation_links_behavior(behavior)
-        if hasattr(self, 'renderer_combo'):
-            renderer = self.renderer_combo.currentData()
-            prefs.set_html_renderer(renderer)
         if hasattr(self, 'quick_test_spin'):
             prefs.set_quick_test_questions(self.quick_test_spin.value())
         # LLM
