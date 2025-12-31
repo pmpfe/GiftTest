@@ -366,8 +366,14 @@ class GIFT_TestApp(QMainWindow):
         start_time = time.time()
 
         def on_success(result):
-            # Check if dialog still exists
-            if not dialog_ref[0] or not dialog_ref[0].isVisible():
+            # Check if dialog still exists and is visible
+            try:
+                if not dialog_ref[0]:
+                    return
+                if not dialog_ref[0].isVisible():
+                    return
+            except (RuntimeError, AttributeError):
+                # Dialog was deleted or no longer valid
                 return
 
             end_time = time.time()

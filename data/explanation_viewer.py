@@ -234,6 +234,9 @@ def show_explanation(
 
     layout.addWidget(header)
 
+    # Initialize viewer variable for both branches
+    viewer = None
+    
     if HAS_WEBENGINE:
         class ZoomableWebView(QWebEngineView):
             def __init__(self):
@@ -314,12 +317,12 @@ def show_explanation(
         layout.addWidget(hint_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         layout.addSpacing(10)
 
-        txt = QTextEdit()
-        txt.setReadOnly(True)
-        txt.setPlainText(re.sub(r"<[^>]+>", "", html_content))
-        layout.addWidget(txt)
+        viewer = QTextEdit()
+        viewer.setReadOnly(True)
+        viewer.setPlainText(re.sub(r"<[^>]+>", "", html_content))
+        layout.addWidget(viewer)
         layout.setStretchFactor(header, 0)
-        layout.setStretchFactor(txt, 1)
+        layout.setStretchFactor(viewer, 1)
 
     # Close button
     btn_layout = QHBoxLayout()
@@ -337,5 +340,5 @@ def show_explanation(
     dialog.show()
 
     # Return dialog and viewer to allow updates
-    return dialog, viewer if HAS_WEBENGINE else txt, time_label, explain_btn
+    return dialog, viewer, time_label, explain_btn
 

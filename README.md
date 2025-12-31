@@ -2,6 +2,9 @@
 
 Aplicação para praticar perguntas em formato GIFT com possibilidade de explicar as respostas via serviços de IA.
 
+![Explanation](assets/shot2_explain.png)
+![Main Menu](assets/shot1_menu.png)
+
 ## Dependências
 
 A aplicação usa apenas bibliotecas Qt:

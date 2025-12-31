@@ -188,7 +188,7 @@ Qual poeta romano escreveu a Eneida?
 }
 
 ::LIT_ClassicaLatin_022 [tags: topico="Literatura Latina"]::
-A Eneida narra os feitos de qual herói após a queda de Troia?
+A Eneida narra os feitos de que herói após a queda de Troia?
 {
     =Eneias
     ~Rômulo
