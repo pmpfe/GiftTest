@@ -178,6 +178,17 @@ class Preferences:
         prefs.setdefault('ui', {})['explanation_links_behavior'] = behavior
         self._write_preferences(prefs)
 
+    def get_html_renderer(self) -> str:
+        """Retorna 'webengine' ou 'textbrowser'."""
+        prefs = self._read_preferences()
+        return prefs.get('ui', {}).get('html_renderer', 'webengine')
+
+    def set_html_renderer(self, renderer: str):
+        """Define renderizador HTML: 'webengine' ou 'textbrowser'."""
+        prefs = self._read_preferences()
+        prefs.setdefault('ui', {})['html_renderer'] = renderer
+        self._write_preferences(prefs)
+
     def get_quick_test_questions(self) -> int:
         """Retorna o número de perguntas para o teste rápido."""
         prefs = self._read_preferences()

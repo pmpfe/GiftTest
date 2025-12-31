@@ -155,6 +155,25 @@ class SettingsScreen:
         layout.addWidget(links_grp)
         layout.addSpacing(15)
 
+        # HTML Renderer
+        renderer_grp = QGroupBox("Renderizador HTML")
+        renderer_layout = QHBoxLayout()
+
+        renderer_layout.addWidget(QLabel("Motor de renderização:"))
+
+        self.renderer_combo = QComboBox()
+        self.renderer_combo.addItem("WebEngine (completo, ~150MB)", "webengine")
+        self.renderer_combo.addItem("TextBrowser (leve, ~0MB)", "textbrowser")
+        current_renderer = self.app.preferences.get_html_renderer()
+        index = 0 if current_renderer == 'webengine' else 1
+        self.renderer_combo.setCurrentIndex(index)
+        renderer_layout.addWidget(self.renderer_combo)
+        renderer_layout.addStretch()
+
+        renderer_grp.setLayout(renderer_layout)
+        layout.addWidget(renderer_grp)
+        layout.addSpacing(15)
+
         # Teste rápido
         quick_test_grp = QGroupBox("Teste Rápido")
         quick_layout = QHBoxLayout()
@@ -418,6 +437,9 @@ class SettingsScreen:
         if hasattr(self, 'links_combo'):
             behavior = self.links_combo.currentData()
             prefs.set_explanation_links_behavior(behavior)
+        if hasattr(self, 'renderer_combo'):
+            renderer = self.renderer_combo.currentData()
+            prefs.set_html_renderer(renderer)
         if hasattr(self, 'quick_test_spin'):
             prefs.set_quick_test_questions(self.quick_test_spin.value())
         # LLM

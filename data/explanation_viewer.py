@@ -9,36 +9,113 @@ import sys
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTextEdit, QWidget, QSizePolicy, QComboBox
+    QTextEdit, QWidget, QSizePolicy, QComboBox, QTextBrowser
 )
 from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QKeyEvent, QDesktopServices
+from PyQt6.QtGui import QKeyEvent, QDesktopServices, QFont
+
+
+def simplify_html_for_textbrowser(html: str) -> str:
+    """Convert complex HTML to QTextBrowser-compatible format."""
+    # Remove unsupported CSS properties
+    html = re.sub(r'background:\s*linear-gradient\([^)]+\);?', '', html)
+    html = re.sub(r'border-radius:\s*[^;]+;?', '', html)
+    html = re.sub(r'box-shadow:\s*[^;]+;?', '', html)
+    html = re.sub(r'display:\s*flex[^;]*;?', '', html)
+    html = re.sub(r'flex[^:]*:\s*[^;]+;?', '', html)
+    return html
+
+
+class ZoomableTextBrowser(QTextBrowser):
+    """QTextBrowser with zoom support via Ctrl+wheel and keyboard."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._zoom = 1.0
+        self._base_font_size = self.font().pointSize()
+        if self._base_font_size <= 0:
+            self._base_font_size = 12
+        self.setOpenExternalLinks(False)
+        self.anchorClicked.connect(self._handle_link)
+
+    def _handle_link(self, url: QUrl):
+        """Open links in external browser."""
+        QDesktopServices.openUrl(url)
+
+    def _apply_zoom(self):
+        """Apply current zoom factor to font size."""
+        font = self.font()
+        font.setPointSize(int(self._base_font_size * self._zoom))
+        self.setFont(font)
+
+    def wheelEvent(self, event):
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            delta = event.angleDelta().y()
+            if delta > 0:
+                self._zoom = min(self._zoom + 0.1, 3.0)
+            else:
+                self._zoom = max(self._zoom - 0.1, 0.3)
+            self._apply_zoom()
+            event.accept()
+        else:
+            super().wheelEvent(event)
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            if event.key() in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
+                self._zoom = min(self._zoom + 0.1, 3.0)
+                self._apply_zoom()
+                return
+            if event.key() == Qt.Key.Key_Minus:
+                self._zoom = max(self._zoom - 0.1, 0.3)
+                self._apply_zoom()
+                return
+            if event.key() in (Qt.Key.Key_0, Qt.Key.Key_Zero):
+                self._zoom = 1.0
+                self._apply_zoom()
+                return
+        super().keyPressEvent(event)
 
 from .llm_client import LLMClient
 
 try:
     from PyQt6.QtWebEngineWidgets import QWebEngineView
-    from PyQt6.QtWebEngineCore import QWebEnginePage
+    from PyQt6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 
     class ExplanationPage(QWebEnginePage):
         """Custom page que controla como links são abertos."""
 
-        def __init__(self, parent, open_links_external):
+        def __init__(self, parent):
             super().__init__(parent)
-            self.open_links_external = open_links_external
+            self._stored_html = ""
+
+        def store_html(self, html: str):
+            """Store HTML to restore after accidental navigation."""
+            self._stored_html = html
 
         def acceptNavigationRequest(self, url, nav_type, is_main_frame):
             """Intercepta cliques em links."""
+            # Allow initial content load (about:blank or data URLs)
+            if url.scheme() in ('about', 'data', ''):
+                return True
+            
+            # For any other navigation (link clicks, etc.), open externally
             if nav_type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked:
-                if self.open_links_external:
-                    # Abre no browser externo
-                    try:
-                        subprocess.run(['xdg-open', url.toString()], check=False)
-                    except Exception:
-                        pass
-                    return False
-                # Deixa abrir internamente (default)
-            return super().acceptNavigationRequest(url, nav_type, is_main_frame)
+                QDesktopServices.openUrl(url)
+                return False
+            
+            # Reject other navigations that would replace content
+            if is_main_frame and url.scheme() in ('http', 'https'):
+                QDesktopServices.openUrl(url)
+                return False
+            
+            return True
+
+        def createWindow(self, window_type):
+            """Handle target=_blank links - open in external browser."""
+            # Return None to prevent new window, but we need to capture the URL
+            # This is handled via acceptNavigationRequest instead
+            return None
 
     HAS_WEBENGINE = True
 except ImportError:
@@ -61,9 +138,11 @@ def show_explanation(
         prefs = parent.preferences
         width_percent, height_percent = prefs.get_explanation_window_size_percent()
         links_behavior = prefs.get_explanation_links_behavior()
+        html_renderer = prefs.get_html_renderer()
     else:
         width_percent, height_percent = 66, 66
         links_behavior = 'browser'
+        html_renderer = 'webengine'
 
     # Create as independent, non-modal dialog
     dialog = QDialog(None)
@@ -234,10 +313,14 @@ def show_explanation(
 
     layout.addWidget(header)
 
-    # Initialize viewer variable for both branches
+    # Initialize viewer variable
     viewer = None
-    
-    if HAS_WEBENGINE:
+
+    # Decide which renderer to use
+    use_webengine = HAS_WEBENGINE and html_renderer == 'webengine'
+
+    if use_webengine:
+        # Use QWebEngineView for full HTML/CSS/JS support
         class ZoomableWebView(QWebEngineView):
             def __init__(self):
                 super().__init__()
@@ -275,7 +358,7 @@ def show_explanation(
         viewer = ZoomableWebView()
 
         # Define custom page para controlar links
-        custom_page = ExplanationPage(viewer, links_behavior == 'browser')
+        custom_page = ExplanationPage(viewer)
         viewer.setPage(custom_page)
 
         # HTML com fonte sans-serif
@@ -290,6 +373,9 @@ def show_explanation(
                     line-height: 1.6;
                     padding: 10px;
                 }}
+                a {{
+                    color: #569cd6;
+                }}
             </style>
         </head>
         <body>
@@ -299,23 +385,38 @@ def show_explanation(
         """
         viewer.setHtml(html_with_style)
         layout.addWidget(viewer)
-        # Make viewer take available space when resizing
         layout.setStretchFactor(header, 0)
         layout.setStretchFactor(viewer, 1)
+
+    elif html_renderer == 'textbrowser' or (not HAS_WEBENGINE and html_renderer == 'webengine'):
+        # Use QTextBrowser for lightweight HTML rendering
+        if not HAS_WEBENGINE and html_renderer == 'webengine':
+            info = QLabel("QtWebEngine não instalado. A usar QTextBrowser.")
+            info.setStyleSheet("color: gray; font-size: 10px;")
+            layout.addWidget(info)
+
+        viewer = ZoomableTextBrowser()
+        # Simplify HTML for QTextBrowser compatibility
+        simplified_html = simplify_html_for_textbrowser(html_content)
+        # Wrap with basic styling
+        html_with_style = f"""
+        <html>
+        <head><meta charset="UTF-8"></head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.5; padding: 8px;">
+            {simplified_html}
+        </body>
+        </html>
+        """
+        viewer.setHtml(html_with_style)
+        layout.addWidget(viewer)
+        layout.setStretchFactor(header, 0)
+        layout.setStretchFactor(viewer, 1)
+
     else:
-        info = QLabel("QtWebEngine não instalado. A mostrar como texto simples.")
+        # Fallback to plain text
+        info = QLabel("A mostrar como texto simples.")
         info.setStyleSheet("color: gray;")
         layout.addWidget(info)
-
-        hint_btn = QPushButton("Instalar QtWebEngine (pacman -S python-pyqt6-webengine)")
-        hint_btn.clicked.connect(
-            lambda: subprocess.run(
-                [sys.executable, "-m", "pip", "install", "PyQt6-WebEngine"],
-                check=False
-            )
-        )
-        layout.addWidget(hint_btn, alignment=Qt.AlignmentFlag.AlignLeft)
-        layout.addSpacing(10)
 
         viewer = QTextEdit()
         viewer.setReadOnly(True)
