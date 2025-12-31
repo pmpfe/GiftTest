@@ -77,7 +77,7 @@ jobs:
           path: GiftTest_x64.exe
 
   build-macos:
-    runs-on: macos-13  # Intel for broader compatibility
+    runs-on: macos-15-intel  # Intel for broader compatibility
     steps:
       - uses: actions/checkout@v4
 
