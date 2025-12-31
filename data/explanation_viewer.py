@@ -12,6 +12,10 @@ from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QKeyEvent, QDesktopServices
 
 from .llm_client import LLMClient
+from .constants import (
+    LLM_PROVIDERS, DEFAULT_WINDOW_PERCENT,
+    MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, DEFAULT_ZOOM, DEFAULT_FONT_SIZE
+)
 
 
 def simplify_html_for_textbrowser(html: str) -> str:
@@ -30,16 +34,23 @@ class ZoomableTextBrowser(QTextBrowser):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._zoom = 1.0
+        self._zoom = DEFAULT_ZOOM
         self._base_font_size = self.font().pointSize()
         if self._base_font_size <= 0:
-            self._base_font_size = 12
+            self._base_font_size = DEFAULT_FONT_SIZE
         self.setOpenExternalLinks(False)
+        self.setOpenLinks(False)  # Prevent internal navigation
         self.anchorClicked.connect(self._handle_link)
 
     def _handle_link(self, url: QUrl):
         """Open links in external browser."""
         QDesktopServices.openUrl(url)
+
+    def setSource(self, url, type=None):
+        """Override to prevent internal navigation - open in browser instead."""
+        if url.scheme() in ('http', 'https', 'ftp'):
+            QDesktopServices.openUrl(url)
+        # Don't call super() - this prevents clearing the content
 
     def _apply_zoom(self):
         """Apply current zoom factor to font size."""
@@ -51,9 +62,9 @@ class ZoomableTextBrowser(QTextBrowser):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             delta = event.angleDelta().y()
             if delta > 0:
-                self._zoom = min(self._zoom + 0.1, 3.0)
+                self._zoom = min(self._zoom + ZOOM_STEP, MAX_ZOOM)
             else:
-                self._zoom = max(self._zoom - 0.1, 0.3)
+                self._zoom = max(self._zoom - ZOOM_STEP, MIN_ZOOM)
             self._apply_zoom()
             event.accept()
         else:
@@ -62,15 +73,15 @@ class ZoomableTextBrowser(QTextBrowser):
     def keyPressEvent(self, event: QKeyEvent):
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if event.key() in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
-                self._zoom = min(self._zoom + 0.1, 3.0)
+                self._zoom = min(self._zoom + ZOOM_STEP, MAX_ZOOM)
                 self._apply_zoom()
                 return
             if event.key() == Qt.Key.Key_Minus:
-                self._zoom = max(self._zoom - 0.1, 0.3)
+                self._zoom = max(self._zoom - ZOOM_STEP, MIN_ZOOM)
                 self._apply_zoom()
                 return
-            if event.key() in (Qt.Key.Key_0, Qt.Key.Key_Zero):
-                self._zoom = 1.0
+            if event.key() == Qt.Key.Key_0:
+                self._zoom = DEFAULT_ZOOM
                 self._apply_zoom()
                 return
         super().keyPressEvent(event)
@@ -92,7 +103,7 @@ def show_explanation(
         prefs = parent.preferences
         width_percent, height_percent = prefs.get_explanation_window_size_percent()
     else:
-        width_percent, height_percent = 66, 66
+        width_percent, height_percent = DEFAULT_WINDOW_PERCENT, DEFAULT_WINDOW_PERCENT
 
     # Create as independent, non-modal dialog
     dialog = QDialog(None)
@@ -137,7 +148,6 @@ def show_explanation(
     left_layout.addWidget(title_label)
 
     # Provider and Model controls
-    providers = ['groq', 'huggingface', 'gemini', 'mistral', 'perplexity', 'openrouter', 'cloudflare']
     initial_provider = metadata.get('provider', 'groq') if metadata else 'groq'
     initial_model = metadata.get('model', '') if metadata else ''
 
@@ -145,7 +155,7 @@ def show_explanation(
     provider_layout = QHBoxLayout()
     provider_label = QLabel("Provider:")
     provider_combo = QComboBox()
-    provider_combo.addItems(providers)
+    provider_combo.addItems(LLM_PROVIDERS)
     provider_combo.setCurrentText(initial_provider)
     provider_layout.addWidget(provider_label)
     provider_layout.addWidget(provider_combo)

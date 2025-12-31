@@ -12,6 +12,11 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from .llm_client import LLMClient, LLMError
+from .constants import (
+    MIN_WINDOW_PERCENT, MAX_WINDOW_PERCENT,
+    MIN_QUICK_TEST_QUESTIONS, MAX_QUICK_TEST_QUESTIONS,
+    LLM_PROVIDERS
+)
 
 
 class SettingsScreen:
@@ -97,14 +102,14 @@ class SettingsScreen:
 
         main_w_pct, main_h_pct = self.app.preferences.get_main_window_size_percent()
         self.main_width_spin = QSpinBox()
-        self.main_width_spin.setRange(30, 100)
+        self.main_width_spin.setRange(MIN_WINDOW_PERCENT, MAX_WINDOW_PERCENT)
         self.main_width_spin.setSuffix("%")
         self.main_width_spin.setValue(main_w_pct)
         main_win_layout.addWidget(self.main_width_spin)
 
         main_win_layout.addWidget(QLabel("Altura:"))
         self.main_height_spin = QSpinBox()
-        self.main_height_spin.setRange(30, 100)
+        self.main_height_spin.setRange(MIN_WINDOW_PERCENT, MAX_WINDOW_PERCENT)
         self.main_height_spin.setSuffix("%")
         self.main_height_spin.setValue(main_h_pct)
         main_win_layout.addWidget(self.main_height_spin)
@@ -118,14 +123,14 @@ class SettingsScreen:
 
         expl_w_pct, expl_h_pct = self.app.preferences.get_explanation_window_size_percent()
         self.expl_width_spin = QSpinBox()
-        self.expl_width_spin.setRange(30, 100)
+        self.expl_width_spin.setRange(MIN_WINDOW_PERCENT, MAX_WINDOW_PERCENT)
         self.expl_width_spin.setSuffix("%")
         self.expl_width_spin.setValue(expl_w_pct)
         expl_win_layout.addWidget(self.expl_width_spin)
 
         expl_win_layout.addWidget(QLabel("Altura:"))
         self.expl_height_spin = QSpinBox()
-        self.expl_height_spin.setRange(30, 100)
+        self.expl_height_spin.setRange(MIN_WINDOW_PERCENT, MAX_WINDOW_PERCENT)
         self.expl_height_spin.setSuffix("%")
         self.expl_height_spin.setValue(expl_h_pct)
         expl_win_layout.addWidget(self.expl_height_spin)
@@ -143,7 +148,7 @@ class SettingsScreen:
         quick_layout.addWidget(QLabel("Número de perguntas:"))
 
         self.quick_test_spin = QSpinBox()
-        self.quick_test_spin.setRange(5, 100)
+        self.quick_test_spin.setRange(MIN_QUICK_TEST_QUESTIONS, MAX_QUICK_TEST_QUESTIONS)
         self.quick_test_spin.setValue(self.app.preferences.get_quick_test_questions())
         quick_layout.addWidget(self.quick_test_spin)
         quick_layout.addStretch()
@@ -189,9 +194,8 @@ class SettingsScreen:
 
         top_layout.addWidget(QLabel("Provedor:"))
 
-        providers = ["groq", "huggingface", "gemini", "mistral", "perplexity", "openrouter", "cloudflare"]
         self.provider_combo = QComboBox()
-        self.provider_combo.addItems(providers)
+        self.provider_combo.addItems(LLM_PROVIDERS)
         self.provider_combo.setCurrentText(prefs.get_llm_provider())
         self.provider_combo.currentTextChanged.connect(self._on_provider_change)
         top_layout.addWidget(self.provider_combo)

@@ -10,13 +10,12 @@ Aplicação para praticar perguntas em formato GIFT com possibilidade de explica
 A aplicação usa apenas bibliotecas Qt:
 
 - `PyQt6` (widgets, layouts)
-- `PyQt6-WebEngine` (renderização HTML para explicações)
 
 Instalação:
 
 **Arch Linux:**
 ```bash
-sudo pacman -S python-pyqt6 python-pyqt6-webengine
+sudo pacman -S python-pyqt6
 ```
 
 **Outras distros / venv:**
@@ -32,11 +31,12 @@ python gift_test_practice.py
 
 ## Funcionalidades
 - Seleção de categorias e número de perguntas
-- Explicação de perguntas via LLM (Groq, Hugging Face, Gemini, Mistral, Perplexity, OpenRouter )
+- Explicação de perguntas via LLM (Groq, Hugging Face, Gemini, Mistral, Perplexity, OpenRouter, Cloudflare)
 - Configurações para ficheiro GIFT, provedor/modelo LLM e prompt
 - Resultados com estatísticas e histórico
-- Renderização HTML rica com QWebEngineView
+- Renderização HTML com QTextBrowser (leve e sem dependências extra)
 - Zoom no conteúdo da explicação (Ctrl + roda do rato, Ctrl +/-, Ctrl + 0)
+- Links abrem automaticamente no browser externo
 
 ## Configuração LLM
 - Aceder a "Configurações" → LLM
@@ -47,18 +47,18 @@ python gift_test_practice.py
 
 ## Estrutura
 - `gift_test_practice.py`: aplicação principal (QMainWindow)
+- `data/constants.py`: constantes da aplicação
 - `data/selection_screen.py`: seleção de categorias
 - `data/question_screen.py`: apresentação de perguntas
 - `data/results_screen.py`: resultados e estatísticas
 - `data/settings_screen.py`: configurações (ficheiro, LLM)
 - `data/explanation_viewer.py`: visualizador HTML
 - `data/gift_parser.py`: parser de ficheiros GIFT
-- `data/llm_client.py`: cliente LLM (multiplos providers)
+- `data/llm_client.py`: cliente LLM (múltiplos providers)
 - `data/preferences.py`: persistência de configurações
 - `data/test_logger.py`: histórico de testes
-- `data/literatura-classica-50.gift.txt`: exemplo de dataset (50 perguntas)
 
 ## Notas
 - Interface Qt6 moderna
 - Tamanhos de janela configuráveis em "Configurações" (percentagem do ecrã)
-- Links das explicações: abrir no browser ou dentro da aplicação (configurável)
+- Executável Windows com ~21MB (compilado com Nuitka)

@@ -6,6 +6,12 @@ import json
 from pathlib import Path
 from typing import Optional
 
+from .constants import (
+    MIN_WINDOW_PERCENT, MAX_WINDOW_PERCENT, DEFAULT_WINDOW_PERCENT,
+    MIN_QUICK_TEST_QUESTIONS, MAX_QUICK_TEST_QUESTIONS, DEFAULT_QUICK_TEST_QUESTIONS,
+    DEFAULT_LLM_PROVIDER, LLM_PROVIDERS
+)
+
 
 class Preferences:
     """Gere preferências persistentes da aplicação."""
@@ -139,11 +145,18 @@ class Preferences:
         self._write_preferences(prefs)
 
     # ---- UI settings ----
-    def get_main_window_size_percent(self) -> tuple[int, int]:
-        """Retorna (width%, height%) da janela principal."""
+    def get_main_window_size_percent(self):
+        """Retorna (width%, height%) da janela principal com validação."""
         prefs = self._read_preferences()
         ui = prefs.get('ui', {})
-        return (ui.get('main_window_width_percent', 66), ui.get('main_window_height_percent', 66))
+        width = ui.get('main_window_width_percent', DEFAULT_WINDOW_PERCENT)
+        height = ui.get('main_window_height_percent', DEFAULT_WINDOW_PERCENT)
+        # Validar limites
+        if not isinstance(width, int) or width < MIN_WINDOW_PERCENT or width > MAX_WINDOW_PERCENT:
+            width = DEFAULT_WINDOW_PERCENT
+        if not isinstance(height, int) or height < MIN_WINDOW_PERCENT or height > MAX_WINDOW_PERCENT:
+            height = DEFAULT_WINDOW_PERCENT
+        return (width, height)
 
     def set_main_window_size_percent(self, width_percent: int, height_percent: int):
         """Guarda tamanho da janela principal em percentagem do ecrã."""
@@ -153,11 +166,18 @@ class Preferences:
         ui['main_window_height_percent'] = height_percent
         self._write_preferences(prefs)
 
-    def get_explanation_window_size_percent(self) -> tuple[int, int]:
-        """Retorna (width%, height%) da janela de explicação."""
+    def get_explanation_window_size_percent(self):
+        """Retorna (width%, height%) da janela de explicação com validação."""
         prefs = self._read_preferences()
         ui = prefs.get('ui', {})
-        return (ui.get('explanation_width_percent', 66), ui.get('explanation_height_percent', 66))
+        width = ui.get('explanation_width_percent', DEFAULT_WINDOW_PERCENT)
+        height = ui.get('explanation_height_percent', DEFAULT_WINDOW_PERCENT)
+        # Validar limites
+        if not isinstance(width, int) or width < MIN_WINDOW_PERCENT or width > MAX_WINDOW_PERCENT:
+            width = DEFAULT_WINDOW_PERCENT
+        if not isinstance(height, int) or height < MIN_WINDOW_PERCENT or height > MAX_WINDOW_PERCENT:
+            height = DEFAULT_WINDOW_PERCENT
+        return (width, height)
 
     def set_explanation_window_size_percent(self, width_percent: int, height_percent: int):
         """Guarda tamanho da janela de explicação em percentagem do parent."""
@@ -189,10 +209,14 @@ class Preferences:
         prefs.setdefault('ui', {})['html_renderer'] = renderer
         self._write_preferences(prefs)
 
-    def get_quick_test_questions(self) -> int:
-        """Retorna o número de perguntas para o teste rápido."""
+    def get_quick_test_questions(self):
+        """Retorna o número de perguntas para o teste rápido com validação."""
         prefs = self._read_preferences()
-        return prefs.get('ui', {}).get('quick_test_questions', 20)
+        count = prefs.get('ui', {}).get('quick_test_questions', DEFAULT_QUICK_TEST_QUESTIONS)
+        # Validar limites
+        if not isinstance(count, int) or count < MIN_QUICK_TEST_QUESTIONS or count > MAX_QUICK_TEST_QUESTIONS:
+            count = DEFAULT_QUICK_TEST_QUESTIONS
+        return count
 
     def set_quick_test_questions(self, count: int):
         """Guarda o número de perguntas para o teste rápido."""
