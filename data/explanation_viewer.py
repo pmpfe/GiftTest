@@ -92,11 +92,15 @@ def show_explanation(
         question_text: str | None = None,
         question_options: list | None = None,
         metadata: dict | None = None,
-        on_reexplain_callback=None):
+        on_reexplain_callback=None,
+        user_answer: str | None = None,
+        user_was_correct: bool | None = None):
     """Shows explanation in a dialog with HTML rendering support.
 
     Args:
         metadata: Dict with 'provider', 'model', 'time' keys for display.
+        user_answer: The answer text given by the user (optional).
+        user_was_correct: Whether the user's answer was correct (optional).
     """
     # Obtém preferências do parent (app)
     if hasattr(parent, 'preferences'):
@@ -272,6 +276,28 @@ def show_explanation(
         header_layout.addWidget(answers_widget, 35)
 
     layout.addWidget(header)
+
+    # Display user's answer if provided
+    if user_answer is not None:
+        if user_was_correct:
+            answer_color = "#28a745"  # green
+            answer_symbol = "✔"
+            answer_status = "Correto!"
+        else:
+            answer_color = "#dc3545"  # red
+            answer_symbol = "✖"
+            answer_status = "Incorreto"
+
+        user_answer_widget = QLabel(
+            f"<div style='padding: 8px; margin: 4px 0; background-color: #f8f9fa; "
+            f"border-left: 4px solid {answer_color}; border-radius: 4px;'>"
+            f"<span style='color: {answer_color}; font-weight: bold;'>{answer_symbol} {answer_status}</span><br/>"
+            f"<b>A sua resposta foi:</b> {user_answer}"
+            f"</div>"
+        )
+        user_answer_widget.setTextFormat(Qt.TextFormat.RichText)
+        user_answer_widget.setWordWrap(True)
+        layout.addWidget(user_answer_widget)
 
     # Use QTextBrowser for HTML rendering
     viewer = ZoomableTextBrowser()

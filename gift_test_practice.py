@@ -37,13 +37,28 @@ class LLMWorker(QThread):
         super().__init__()
         self.client = client
         self.prompt = prompt
+        self._cancelled = False
+        self.finished.connect(self.deleteLater)
+        self.error.connect(self.deleteLater)
+
+    def cancel(self):
+        self._cancelled = True
 
     def run(self):
         try:
+            if self._cancelled:
+                self.deleteLater()
+                return
             result = self.client.generate(self.prompt)
-            self.finished.emit(result)
+            if not self._cancelled:
+                self.finished.emit(result)
+            else:
+                self.deleteLater()
         except Exception as e:
-            self.error.emit(str(e))
+            if not self._cancelled:
+                self.error.emit(str(e))
+            else:
+                self.deleteLater()
 
 
 class GIFT_TestApp(QMainWindow):
@@ -103,6 +118,17 @@ class GIFT_TestApp(QMainWindow):
         w = int(screen.width() * width_percent / 100)
         h = int(screen.height() * height_percent / 100)
         self.resize(w, h)
+
+    def closeEvent(self, event):
+        """Handle application close, ensuring threads are properly cleaned up."""
+        if self._llm_worker and self._llm_worker.isRunning():
+            self._llm_worker.cancel()
+            # Wait a short time for the thread to finish
+            if not self._llm_worker.wait(1000):  # 1 second timeout
+                # If still running, terminate (last resort)
+                self._llm_worker.terminate()
+                self._llm_worker.wait()
+        super().closeEvent(event)
 
     def load_questions(self, gift_file: str = None):
         """Carrega perguntas do ficheiro GIFT.
@@ -277,11 +303,13 @@ class GIFT_TestApp(QMainWindow):
         # Mostra primeira pergunta
         self.show_question()
 
-    def explain_question(self, question_obj=None):
+    def explain_question(self, question_obj=None, user_answer=None, user_was_correct=None):
         """Gera e mostra a explicação via LLM para a pergunta indicada.
 
         Args:
             question_obj: Objeto da pergunta (opcional). Se não fornecido, lê do campo de texto.
+            user_answer: Texto da resposta dada pelo utilizador (opcional).
+            user_was_correct: Se a resposta do utilizador estava correta (opcional).
         """
         if not self.parser or not self.parser.questions:
             QMessageBox.warning(self, "Aviso", "Nenhuma pergunta carregada.")
@@ -354,7 +382,9 @@ class GIFT_TestApp(QMainWindow):
             question_text=question.text,
             question_options=question.options,
             metadata={'provider': provider, 'model': model},
-            on_reexplain_callback=lambda p, m: generate_explanation(p, m)
+            on_reexplain_callback=lambda p, m: generate_explanation(p, m),
+            user_answer=user_answer,
+            user_was_correct=user_was_correct
         )
 
         # Keep references
