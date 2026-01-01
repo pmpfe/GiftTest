@@ -1,7 +1,7 @@
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
                                QTableWidgetItem, QHeaderView, QLineEdit, QLabel,
                                QPushButton, QAbstractItemView, QComboBox)
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 
 class QuestionBrowser(QDialog):
     def __init__(self, parent, questions):

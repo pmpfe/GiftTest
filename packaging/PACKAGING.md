@@ -104,7 +104,7 @@ packaging/
 
 #### PyInstaller (`pyinstaller/gift-test-practice.spec`)
 - Creates standalone executables
-- Includes PyQt6 modules and dependencies
+- Includes PySide6 modules and dependencies
 - Bundles application data directory
 - Platform-specific icons (PNG, ICO, ICNS)
 

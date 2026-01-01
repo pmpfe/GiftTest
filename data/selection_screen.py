@@ -2,10 +2,10 @@
 Ecrã de seleção de categorias e configuração do teste.
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                                QCheckBox, QSpinBox, QScrollArea, QGroupBox, QLineEdit,
                                QTableWidget, QTableWidgetItem, QHeaderView, QFrame)
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 import random
 import re
 from .history_screen import HistoryScreen

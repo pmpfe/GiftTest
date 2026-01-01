@@ -4,12 +4,12 @@ Displays LLM explanations in a rich viewer using QTextBrowser for HTML rendering
 
 import re
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QWidget, QSizePolicy, QComboBox, QTextBrowser
 )
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QKeyEvent, QDesktopServices
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QKeyEvent, QDesktopServices
 
 from .llm_client import LLMClient
 from .constants import (

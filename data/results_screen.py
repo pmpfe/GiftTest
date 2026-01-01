@@ -2,9 +2,9 @@
 Ecrã de resultados do teste.
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                QPushButton, QTextEdit, QGroupBox)
-from PyQt6.QtGui import QFont, QColor
+from PySide6.QtGui import QFont, QColor
 
 
 class ResultsScreen:
@@ -169,10 +169,10 @@ class ResultsScreen:
             if question:
                 self.app.explain_question(question)
             else:
-                from PyQt6.QtWidgets import QMessageBox
+                from PySide6.QtWidgets import QMessageBox
                 QMessageBox.warning(self.app, "Aviso", f"Pergunta {question_number} não encontrada.")
         else:
-            from PyQt6.QtWidgets import QMessageBox
+            from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(self.app, "Aviso", "Nenhum ficheiro carregado.")
 
     def _create_buttons(self, layout):

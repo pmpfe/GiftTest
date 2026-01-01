@@ -9,13 +9,13 @@ Aplicação para praticar perguntas em formato GIFT com possibilidade de explica
 
 A aplicação usa apenas bibliotecas Qt:
 
-- `PyQt6` (widgets, layouts)
+- `PySide6` (widgets, layouts)
 
 Instalação:
 
 **Arch Linux:**
 ```bash
-sudo pacman -S python-pyqt6
+sudo pacman -S pyside6
 ```
 
 **Outras distros / venv:**

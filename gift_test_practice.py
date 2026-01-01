@@ -10,8 +10,8 @@ import sys
 import time
 from pathlib import Path
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
-from PyQt6.QtCore import QThread, pyqtSignal
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PySide6.QtCore import QThread, Signal
 
 sys.path.insert(0, str(Path(__file__).parent))
 # pylint: disable=wrong-import-position
@@ -30,8 +30,8 @@ from data.question_browser import QuestionBrowser
 
 class LLMWorker(QThread):
     """Worker thread for LLM generation to avoid blocking UI."""
-    finished = pyqtSignal(str)
-    error = pyqtSignal(str)
+    finished = Signal(str)
+    error = Signal(str)
 
     def __init__(self, client, prompt):
         super().__init__()
@@ -145,11 +145,11 @@ class GIFT_TestApp(QMainWindow):
 
     def show_about(self):
         """Mostra diálogo 'Sobre o Programa'."""
-        from PyQt6.QtWidgets import (
+        from PySide6.QtWidgets import (
             QDialog, QVBoxLayout, QLabel, QPushButton,
             QScrollArea, QWidget, QGroupBox
         )
-        from PyQt6.QtCore import Qt
+        from PySide6.QtCore import Qt
         dlg = QDialog(self)
         dlg.setWindowTitle("Sobre o Programa")
         layout = QVBoxLayout(dlg)

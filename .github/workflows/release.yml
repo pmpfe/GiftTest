@@ -10,14 +10,14 @@ env:
   # Common Nuitka flags for lean binaries
   NUITKA_COMMON: >-
     --onefile
-    --enable-plugin=pyqt6
+    --enable-plugin=pyside6
     --noinclude-default-mode=nofollow
     --noinclude-pytest-mode=nofollow
     --noinclude-unittest-mode=nofollow
     --noinclude-setuptools-mode=nofollow
-    --noinclude-custom-mode=PyQt6.QtWebEngine:nofollow
-    --noinclude-custom-mode=PyQt6.QtWebEngineCore:nofollow
-    --noinclude-custom-mode=PyQt6.QtWebEngineWidgets:nofollow
+    --noinclude-custom-mode=PySide6.QtWebEngine:nofollow
+    --noinclude-custom-mode=PySide6.QtWebEngineCore:nofollow
+    --noinclude-custom-mode=PySide6.QtWebEngineWidgets:nofollow
 
 jobs:
   build-linux:

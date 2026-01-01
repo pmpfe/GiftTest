@@ -5,11 +5,11 @@ prompt template, theme, and GIFT file path.
 
 import webbrowser
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
                                QLineEdit, QComboBox, QTextEdit, QTabWidget, QGroupBox,
                                QFileDialog, QMessageBox, QSpinBox)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
 
 from .llm_client import LLMClient, LLMError
 from .constants import (

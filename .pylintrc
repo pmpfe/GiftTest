@@ -11,7 +11,7 @@ ignore=test_llm_models.py
 [MESSAGES CONTROL]
 # Disable specific warnings
 disable=
-    # PyQt6 false positives - pylint cannot properly analyze PyQt6 C extensions
+    # PySide6 false positives - pylint cannot properly analyze PySide6 C extensions
     no-name-in-module,
     # Code duplication is acceptable for UI code patterns
     duplicate-code,

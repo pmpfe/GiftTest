@@ -6,8 +6,7 @@ setup(
     description="Aplicação para praticar perguntas em formato GIFT com interface Qt6",
     packages=find_packages(),
     install_requires=[
-        "PyQt6",
-        "PyQt6-WebEngine",
+        "PySide6",
     ],
     entry_points={
         "console_scripts": [

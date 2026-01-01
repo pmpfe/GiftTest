@@ -2,10 +2,10 @@
 Ecrã de histórico de testes.
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGroupBox
 )
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 
 
 class HistoryScreen:
@@ -230,8 +230,8 @@ class HistoryScreen:
             if question:
                 self.app.explain_question(question)
             else:
-                from PyQt6.QtWidgets import QMessageBox
+                from PySide6.QtWidgets import QMessageBox
                 QMessageBox.warning(self.app, "Aviso", f"Pergunta {question_number} não encontrada no ficheiro atual.")
         else:
-            from PyQt6.QtWidgets import QMessageBox
+            from PySide6.QtWidgets import QMessageBox
             QMessageBox.warning(self.app, "Aviso", "Nenhum ficheiro carregado.")
