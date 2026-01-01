@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                QPushButton, QRadioButton, QGroupBox, QButtonGroup, QMessageBox)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from .i18n import tr
 
 
 class QuestionScreen:
@@ -32,7 +33,7 @@ class QuestionScreen:
         main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Progresso
-        progress_text = f"Pergunta {self.app.current_question_index + 1} de {len(self.app.selected_questions)}"
+        progress_text = tr("Pergunta") + f" {self.app.current_question_index + 1} " + tr("de") + f" {len(self.app.selected_questions)}"
         progress_label = QLabel(progress_text)
         progress_font = progress_label.font()
         progress_font.setItalic(True)
@@ -41,7 +42,7 @@ class QuestionScreen:
 
         # Categoria
         if question.category:
-            category_label = QLabel(f"Categoria: {question.category}")
+            category_label = QLabel(tr("Categoria:") + f" {question.category}")
             category_font = category_label.font()
             category_font.setItalic(True)
             category_label.setFont(category_font)
@@ -49,7 +50,7 @@ class QuestionScreen:
             main_layout.addSpacing(10)
 
         # Pergunta
-        question_grp = QGroupBox(f"Questão {question.number}")
+        question_grp = QGroupBox(tr("Questão") + f" {question.number}")
         question_layout = QVBoxLayout()
 
         question_label = QLabel(question.text)
@@ -61,7 +62,7 @@ class QuestionScreen:
         main_layout.addSpacing(15)
 
         # Opções de resposta
-        options_grp = QGroupBox("Opções")
+        options_grp = QGroupBox(tr("Opções"))
         options_layout = QVBoxLayout()
 
         button_group = QButtonGroup(central)
@@ -83,17 +84,17 @@ class QuestionScreen:
         button_layout.setContentsMargins(0, 0, 0, 0)
 
         if self.app.current_question_index > 0:
-            prev_btn = QPushButton("← Anterior")
+            prev_btn = QPushButton(tr("← Anterior"))
             prev_btn.clicked.connect(self.previous_question)
             button_layout.addWidget(prev_btn)
 
-        next_text = "Próxima →" if self.app.current_question_index < len(self.app.selected_questions) - 1 else "Finalizar"
+        next_text = tr("Próxima →") if self.app.current_question_index < len(self.app.selected_questions) - 1 else tr("Finalizar")
         next_btn = QPushButton(next_text)
         next_btn.clicked.connect(self.next_question)
         button_layout.addWidget(next_btn)
 
         # Botão Terminar Agora (Novo)
-        finish_btn = QPushButton("Terminar Agora")
+        finish_btn = QPushButton(tr("Terminar Agora"))
         finish_btn.clicked.connect(self.finish_early)
         finish_btn.setStyleSheet("color: #d32f2f;")  # Red text to indicate destructive/exit action
         button_layout.addSpacing(20)
@@ -112,8 +113,8 @@ class QuestionScreen:
         """Termina o teste prematuramente."""
         response = QMessageBox.question(
             self.app,
-            "Terminar Teste",
-            "Tem a certeza que deseja terminar o teste agora?\n\nApenas as perguntas visualizadas serão contabilizadas.",
+            tr("Terminar Teste"),
+            tr("Tem a certeza que deseja terminar o teste agora?") + "\n\n" + tr("Apenas as perguntas visualizadas serão contabilizadas."),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if response == QMessageBox.StandardButton.Yes:
@@ -140,8 +141,8 @@ class QuestionScreen:
         if answer == -1:
             response = QMessageBox.question(
                 self.app,
-                "Aviso",
-                "Não selecionou nenhuma resposta. Continuar mesmo assim?",
+                tr("Aviso"),
+                tr("Não selecionou nenhuma resposta. Continuar mesmo assim?"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if response != QMessageBox.StandardButton.Yes:

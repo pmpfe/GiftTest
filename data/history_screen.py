@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGroupBox
 )
 from PySide6.QtCore import Qt
+from .i18n import tr
 
 
 class HistoryScreen:
@@ -25,7 +26,7 @@ class HistoryScreen:
         main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Título
-        title = QLabel("Histórico de Testes")
+        title = QLabel(tr("Histórico de Testes"))
         title_font = title.font()
         title_font.setPointSize(title_font.pointSize() + 6)
         title_font.setBold(True)
@@ -43,7 +44,7 @@ class HistoryScreen:
 
     def _show_test_list(self, layout):
         """Mostra lista de testes realizados."""
-        grp = QGroupBox("Testes Realizados")
+        grp = QGroupBox(tr("Testes Realizados"))
         grp_layout = QVBoxLayout()
 
         # Container para os itens da lista
@@ -56,7 +57,7 @@ class HistoryScreen:
         history = self.app.logger.get_recent_tests(limit=50, gift_file=self.app.current_gift_file)
 
         if not history:
-            no_tests_label = QLabel("Nenhum teste encontrado.")
+            no_tests_label = QLabel(tr("Nenhum teste encontrado."))
             no_tests_label.setStyleSheet("color: gray; font-style: italic;")
             no_tests_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             scroll_layout.addWidget(no_tests_label)
@@ -97,7 +98,7 @@ class HistoryScreen:
         item_layout.addStretch()
 
         # Botão "Ver resultados"
-        view_btn = QPushButton("Ver resultados")
+        view_btn = QPushButton(tr("Ver resultados"))
         view_btn.setFixedWidth(120)
         view_btn.clicked.connect(lambda: self._show_test_results(test_data))
         item_layout.addWidget(view_btn)
@@ -112,7 +113,7 @@ class HistoryScreen:
 
         button_layout.addStretch()
 
-        back_btn = QPushButton("Voltar")
+        back_btn = QPushButton(tr("Voltar"))
         back_btn.clicked.connect(self.app.show_selection_screen)
         button_layout.addWidget(back_btn)
 
@@ -131,7 +132,7 @@ class HistoryScreen:
         main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Título
-        title = QLabel("Resultados do Teste")
+        title = QLabel(tr("Resultados do Teste"))
         title_font = title.font()
         title_font.setPointSize(title_font.pointSize() + 6)
         title_font.setBold(True)
@@ -140,21 +141,21 @@ class HistoryScreen:
         main_layout.addSpacing(20)
 
         # Estatísticas
-        stats_grp = QGroupBox("Estatísticas")
+        stats_grp = QGroupBox(tr("Estatísticas"))
         stats_layout = QVBoxLayout()
 
-        stats_layout.addWidget(QLabel(f"Data: {test_data['date']} {test_data['time']}"))
-        stats_layout.addWidget(QLabel(f"Total de perguntas: {test_data['total_questions']}"))
+        stats_layout.addWidget(QLabel(tr("Data:") + f" {test_data['date']} {test_data['time']}"))
+        stats_layout.addWidget(QLabel(tr("Total de perguntas:") + f" {test_data['total_questions']}"))
 
-        correct_label = QLabel(f"Respostas corretas: {test_data['correct']}")
+        correct_label = QLabel(tr("Respostas corretas:") + f" {test_data['correct']}")
         correct_label.setStyleSheet("color: green;")
         stats_layout.addWidget(correct_label)
 
-        wrong_label = QLabel(f"Respostas erradas: {test_data['wrong']}")
+        wrong_label = QLabel(tr("Respostas erradas:") + f" {test_data['wrong']}")
         wrong_label.setStyleSheet("color: red;")
         stats_layout.addWidget(wrong_label)
 
-        percent_label = QLabel(f"Percentagem: {test_data['percentage']}%")
+        percent_label = QLabel(tr("Percentagem:") + f" {test_data['percentage']}%")
         percent_font = percent_label.font()
         percent_font.setBold(True)
         percent_label.setFont(percent_font)
@@ -166,7 +167,7 @@ class HistoryScreen:
 
         # Detalhes das perguntas erradas, se disponíveis
         if 'details' in test_data and test_data['details']:
-            errors_grp = QGroupBox("Perguntas Erradas")
+            errors_grp = QGroupBox(tr("Perguntas Erradas"))
             errors_layout = QVBoxLayout()
 
             for i, detail in enumerate(test_data['details'], 1):
@@ -176,20 +177,20 @@ class HistoryScreen:
                 errors_layout.addWidget(detail_label)
 
                 # Pergunta
-                errors_layout.addWidget(QLabel(f"   Pergunta: {detail['question_text']}"))
+                errors_layout.addWidget(QLabel(tr("Pergunta:") + f" {detail['question_text']}"))
 
                 # Resposta do utilizador (vermelho)
-                user_label = QLabel(f"   Sua resposta: {detail['user_answer']}")
+                user_label = QLabel(tr("Sua resposta:") + f" {detail['user_answer']}")
                 user_label.setStyleSheet("color: red;")
                 errors_layout.addWidget(user_label)
 
                 # Resposta correta (verde)
-                correct_label = QLabel(f"   Resposta correta: {detail['correct_answer']}")
+                correct_label = QLabel(tr("Resposta correta:") + f" {detail['correct_answer']}")
                 correct_label.setStyleSheet("color: green;")
                 errors_layout.addWidget(correct_label)
 
                 # Botão para explicar
-                explain_btn = QPushButton(f"Ver explicação da pergunta {detail['question_number']}")
+                explain_btn = QPushButton(tr("Ver explicação da pergunta") + f" {detail['question_number']}")
                 explain_btn.clicked.connect(lambda checked, qnum=detail['question_number']: self._explain_question(qnum))
                 errors_layout.addWidget(explain_btn)
 
@@ -204,13 +205,13 @@ class HistoryScreen:
         button_layout = QHBoxLayout(button_widget)
         button_layout.setContentsMargins(0, 0, 0, 0)
 
-        back_btn = QPushButton("Voltar ao Histórico")
+        back_btn = QPushButton(tr("Voltar ao Histórico"))
         back_btn.clicked.connect(self.show)
         button_layout.addWidget(back_btn)
 
         button_layout.addStretch()
 
-        home_btn = QPushButton("Voltar ao Início")
+        home_btn = QPushButton(tr("Voltar ao Início"))
         home_btn.clicked.connect(self.app.show_selection_screen)
         button_layout.addWidget(home_btn)
 
@@ -231,7 +232,7 @@ class HistoryScreen:
                 self.app.explain_question(question)
             else:
                 from PySide6.QtWidgets import QMessageBox
-                QMessageBox.warning(self.app, "Aviso", f"Pergunta {question_number} não encontrada no ficheiro atual.")
+                QMessageBox.warning(self.app, tr("Aviso"), tr("Pergunta") + f" {question_number} " + tr("não encontrada no ficheiro atual."))
         else:
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(self.app, "Aviso", "Nenhum ficheiro carregado.")
+            QMessageBox.warning(self.app, tr("Aviso"), tr("Nenhum ficheiro carregado."))

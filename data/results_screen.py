@@ -5,6 +5,7 @@ Ecrã de resultados do teste.
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                                QPushButton, QTextEdit, QGroupBox)
 from PySide6.QtGui import QFont, QColor
+from .i18n import tr
 
 
 class ResultsScreen:
@@ -33,7 +34,7 @@ class ResultsScreen:
         main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Título
-        title = QLabel("Resultados do Teste")
+        title = QLabel(tr("Resultados do Teste"))
         title_font = title.font()
         title_font.setPointSize(title_font.pointSize() + 6)
         title_font.setBold(True)
@@ -100,20 +101,20 @@ class ResultsScreen:
 
     def _show_statistics(self, layout, total, correct, wrong, percentage):
         """Mostra estatísticas do teste."""
-        stats_grp = QGroupBox("Estatísticas")
+        stats_grp = QGroupBox(tr("Estatísticas"))
         stats_layout = QVBoxLayout()
 
-        stats_layout.addWidget(QLabel(f"Total de perguntas: {total}"))
+        stats_layout.addWidget(QLabel(tr("Total de perguntas:") + f" {total}"))
 
-        correct_label = QLabel(f"Respostas corretas: {correct}")
+        correct_label = QLabel(tr("Respostas corretas:") + f" {correct}")
         correct_label.setStyleSheet("color: green;")
         stats_layout.addWidget(correct_label)
 
-        wrong_label = QLabel(f"Respostas erradas: {wrong}")
+        wrong_label = QLabel(tr("Respostas erradas:") + f" {wrong}")
         wrong_label.setStyleSheet("color: red;")
         stats_layout.addWidget(wrong_label)
 
-        percent_label = QLabel(f"Percentagem: {percentage:.1f}%")
+        percent_label = QLabel(tr("Percentagem:") + f" {percentage:.1f}%")
         percent_font = percent_label.font()
         percent_font.setBold(True)
         percent_label.setFont(percent_font)
@@ -125,7 +126,7 @@ class ResultsScreen:
 
     def _show_wrong_answers(self, layout, wrong_details):
         """Mostra lista de perguntas erradas."""
-        errors_grp = QGroupBox("Perguntas Erradas")
+        errors_grp = QGroupBox(tr("Perguntas Erradas"))
         errors_layout = QVBoxLayout()
 
         text_widget = QTextEdit()
@@ -133,27 +134,27 @@ class ResultsScreen:
 
         for i, detail in enumerate(wrong_details, 1):
             # Botão para explicar antes do bloco
-            explain_btn = QPushButton(f"Ver explicação da pergunta {detail['question_number']}")
+            explain_btn = QPushButton(tr("Ver explicação da pergunta") + f" {detail['question_number']}")
             explain_btn.clicked.connect(lambda checked, qnum=detail['question_number']: self._explain_question(qnum))
             errors_layout.addWidget(explain_btn)
 
             # Número e categoria
             text_widget.setFontWeight(QFont.Weight.Bold)
-            text_widget.insertPlainText(f"{i}. Questão {detail['question_number']}")
+            text_widget.insertPlainText(f"{i}. " + tr("Questão") + f" {detail['question_number']}")
             text_widget.setFontWeight(QFont.Weight.Normal)
             text_widget.insertPlainText(f" ({detail['category']})\n")
 
             # Pergunta
-            text_widget.insertPlainText(f"   Pergunta: {detail['question_text']}\n")
+            text_widget.insertPlainText("   " + tr("Pergunta:") + f" {detail['question_text']}\n")
 
             # Resposta do utilizador (vermelho)
             text_widget.setTextColor(QColor("red"))
-            text_widget.insertPlainText(f"   Sua resposta: {detail['user_answer']}\n")
+            text_widget.insertPlainText("   " + tr("Sua resposta:") + f" {detail['user_answer']}\n")
             text_widget.setTextColor(QColor("black"))
 
             # Resposta correta (verde)
             text_widget.setTextColor(QColor("green"))
-            text_widget.insertPlainText(f"   Resposta correta: {detail['correct_answer']}\n\n")
+            text_widget.insertPlainText("   " + tr("Resposta correta:") + f" {detail['correct_answer']}\n\n")
             text_widget.setTextColor(QColor("black"))
 
         errors_layout.addWidget(text_widget)
@@ -170,10 +171,10 @@ class ResultsScreen:
                 self.app.explain_question(question)
             else:
                 from PySide6.QtWidgets import QMessageBox
-                QMessageBox.warning(self.app, "Aviso", f"Pergunta {question_number} não encontrada.")
+                QMessageBox.warning(self.app, tr("Aviso"), tr("Pergunta") + f" {question_number} " + tr("não encontrada."))
         else:
             from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(self.app, "Aviso", "Nenhum ficheiro carregado.")
+            QMessageBox.warning(self.app, tr("Aviso"), tr("Nenhum ficheiro carregado."))
 
     def _create_buttons(self, layout):
         """Cria botões de ação."""
@@ -181,7 +182,7 @@ class ResultsScreen:
         button_layout = QHBoxLayout(button_widget)
         button_layout.setContentsMargins(0, 0, 0, 0)
 
-        back_btn = QPushButton("Voltar ao início")
+        back_btn = QPushButton(tr("Voltar ao início"))
         back_btn.clicked.connect(self.app.show_selection_screen)
         button_layout.addWidget(back_btn)
 

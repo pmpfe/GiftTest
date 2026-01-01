@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QKeyEvent, QDesktopServices
 
 from .llm_client import LLMClient
+from .i18n import tr
 from .constants import (
     LLM_PROVIDERS, DEFAULT_WINDOW_PERCENT,
     MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, DEFAULT_ZOOM, DEFAULT_FONT_SIZE
@@ -157,7 +158,7 @@ def show_explanation(
 
     # Provider combo
     provider_layout = QHBoxLayout()
-    provider_label = QLabel("Provider:")
+    provider_label = QLabel(tr("Provedor:"))
     provider_combo = QComboBox()
     provider_combo.addItems(LLM_PROVIDERS)
     provider_combo.setCurrentText(initial_provider)
@@ -167,7 +168,7 @@ def show_explanation(
 
     # Model combo
     model_layout = QHBoxLayout()
-    model_label = QLabel("Modelo:")
+    model_label = QLabel(tr("Modelo:"))
     model_combo = QComboBox()
     # Populate initial models
     if hasattr(parent, 'preferences'):
@@ -194,7 +195,7 @@ def show_explanation(
     left_layout.addLayout(model_layout)
 
     # Explain button
-    explain_btn = QPushButton("Obter explicação")
+    explain_btn = QPushButton(tr("Obter explicação"))
     explain_btn.setEnabled(True)  # Always enabled
     left_layout.addWidget(explain_btn)
 
@@ -320,7 +321,7 @@ def show_explanation(
     # Close button
     btn_layout = QHBoxLayout()
     btn_layout.addStretch()
-    close_btn = QPushButton("Fechar")
+    close_btn = QPushButton(tr("Fechar"))
     close_btn.clicked.connect(dialog.close)
     btn_layout.addWidget(close_btn)
     layout.addLayout(btn_layout)

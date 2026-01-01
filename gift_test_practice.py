@@ -25,6 +25,7 @@ from data.explanation_viewer import show_explanation
 from data.question_screen import QuestionScreen
 from data.results_screen import ResultsScreen
 from data.question_browser import QuestionBrowser
+from data.i18n import initialize_translator, change_language, get_current_language, tr
 # pylint: enable=wrong-import-position
 
 
@@ -38,8 +39,6 @@ class LLMWorker(QThread):
         self.client = client
         self.prompt = prompt
         self._cancelled = False
-        self.finished.connect(self.deleteLater)
-        self.error.connect(self.deleteLater)
 
     def cancel(self):
         self._cancelled = True
@@ -66,7 +65,7 @@ class GIFT_TestApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Sistema de Testes GIFT")
+        self.setWindowTitle(tr("Sistema de Testes GIFT"))
 
         # Global stylesheet for borders
         self.setStyleSheet("""
@@ -140,7 +139,7 @@ class GIFT_TestApp(QMainWindow):
             return
 
         if not Path(gift_file).exists():
-            QMessageBox.critical(self, "Erro", f"Ficheiro {gift_file} não encontrado!")
+            QMessageBox.critical(self, tr("Erro"), tr("Ficheiro {0} não encontrado!").format(gift_file))
             return
 
         try:
@@ -154,7 +153,7 @@ class GIFT_TestApp(QMainWindow):
                 self.show_selection_screen()
 
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao carregar perguntas: {e}")
+            QMessageBox.critical(self, tr("Erro"), tr("Erro ao carregar perguntas: {0}").format(e))
             self.parser = None
             self.current_gift_file = None
 
@@ -176,8 +175,9 @@ class GIFT_TestApp(QMainWindow):
             QScrollArea, QWidget, QGroupBox
         )
         from PySide6.QtCore import Qt
+        from data.i18n import tr
         dlg = QDialog(self)
-        dlg.setWindowTitle("Sobre o Programa")
+        dlg.setWindowTitle(tr("Sobre o Programa"))
         layout = QVBoxLayout(dlg)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -185,7 +185,7 @@ class GIFT_TestApp(QMainWindow):
         c_layout = QVBoxLayout(container)
 
         apptitle_html = (
-            "<div style='text-align:center;'><b>Sistema de Testes GIFT</b></div>"
+            f"<div style='text-align:center;'><b>{tr('Sistema de Testes GIFT')}</b></div>"
             "<div style='text-align:center; font-size: small;'><a href='https://github.com/pmpfe/GiftTest'>github.com/pmpfe/GiftTest</a></div>"
             )
         apptitle_label = QLabel(apptitle_html)
@@ -196,12 +196,12 @@ class GIFT_TestApp(QMainWindow):
 
 
         # Grupo: O que este programa faz
-        what_grp = QGroupBox("O que o programa faz")
+        what_grp = QGroupBox(tr("O que o programa faz"))
         what_layout = QVBoxLayout()
         what_html = (
 
-            "<p>- Praticar testes (a partir de bancos de perguntas)</p>"
-            "<p>- Explorar perguntas e respostas com serviços de IA públicos (função explicar)</p>"
+            f"<p>- {tr('Praticar testes (a partir de bancos de perguntas)')}</p>"
+            f"<p>- {tr('Explorar perguntas e respostas com serviços de IA públicos (função explicar)')}</p>"
 
         )
         what_lbl = QLabel(what_html)
@@ -212,13 +212,13 @@ class GIFT_TestApp(QMainWindow):
         c_layout.addWidget(what_grp)
 
         # Grupo: Como usar
-        how_grp = QGroupBox("Como usar")
+        how_grp = QGroupBox(tr("Como usar"))
         how_layout = QVBoxLayout()
         how_html = (
             "<ol>"
-            "<li>Cria ou transpõe perguntas para um ficheiro GIFT.</li>"
-            "<li>Carrega o ficheiro na aplicação em Configurações.</li>"
-            "<li>(Opcional) Configura uma API KEY e escolhe um modelo disponível.</li>"
+            f"<li>{tr('Cria ou transpõe perguntas para um ficheiro GIFT.')}</li>"
+            f"<li>{tr('Carrega o ficheiro na aplicação em Configurações.')}</li>"
+            f"<li>{tr('(Opcional) Configura uma API KEY e escolhe um modelo disponível.')}</li>"
             "</ol>"
         )
         how_lbl = QLabel(how_html)
@@ -229,23 +229,12 @@ class GIFT_TestApp(QMainWindow):
         c_layout.addWidget(how_grp)
 
                 # Grupo: Notas do Autor
-        author_title = QLabel("Notas do autor (<a href='mailto:pferreira@gmail.com'>pferreira@gmail.com</a>)")
-        author_title.setTextFormat(Qt.TextFormat.RichText)
-        author_title.setOpenExternalLinks(True)
-        # author_title.setStyleSheet("font-weight: bold; font-size: 14px;")
-        c_layout.addWidget(author_title)
-
-        author_grp = QGroupBox()
+        author_grp = QGroupBox(tr("Notas do Autor (pferreira@gmail.com)"))
         author_layout = QVBoxLayout()
         author_html = (
-            "<p>- A avaliação deve estar ao serviço da aprendizagem, "
-            "mais do que o contrário.</p>"
-            "<p>- Os modelos de IA, como em diferente medida as enciclopédias, "
-            "os professores ou a percepção sensorial, são mediadores do acesso "
-            "ao real. São úteis, mas limitados. Usa-os todos, mas questiona. "
-            "Imagina, explora, experimenta.</p>"
-            "<p>- Este software é teu. Podes fazer com ele tudo o que quiseres "
-            "e conseguires.</p>"
+            f"<p>- {tr('A avaliação deve estar ao serviço da aprendizagem, mais do que o contrário.')}</p>"
+            f"<p>- {tr('Os modelos de IA, como em diferente medida as enciclopédias, os professores ou a percepção sensorial, são mediadores do acesso ao real. São úteis, mas limitados. Usa-os todos, mas questiona. Imagina, explora, experimenta.')}</p>"
+            f"<p>- {tr('Este software é teu. Podes fazer com ele tudo o que quiseres e conseguires.')}</p>"
         )
         author_lbl = QLabel(author_html)
         author_lbl.setWordWrap(True)
@@ -257,7 +246,7 @@ class GIFT_TestApp(QMainWindow):
         c_layout.addStretch()
         scroll.setWidget(container)
         layout.addWidget(scroll)
-        btn = QPushButton("Fechar")
+        btn = QPushButton(tr("Fechar"))
         btn.clicked.connect(dlg.close)
         layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignRight)
         dlg.resize(600, 600)
@@ -281,7 +270,7 @@ class GIFT_TestApp(QMainWindow):
     def show_question_browser(self):
         """Abre o explorador de perguntas."""
         if not self.parser or not self.parser.questions:
-            QMessageBox.warning(self, "Aviso", "Nenhuma pergunta carregada.")
+            QMessageBox.warning(self, tr("Aviso"), tr("Nenhuma pergunta carregada."))
             return
         self.browser = QuestionBrowser(self, self.parser.questions)
         self.browser.show()
@@ -312,7 +301,7 @@ class GIFT_TestApp(QMainWindow):
             user_was_correct: Se a resposta do utilizador estava correta (opcional).
         """
         if not self.parser or not self.parser.questions:
-            QMessageBox.warning(self, "Aviso", "Nenhuma pergunta carregada.")
+            QMessageBox.warning(self, tr("Aviso"), tr("Nenhuma pergunta carregada."))
             return
 
         if question_obj:
@@ -321,14 +310,14 @@ class GIFT_TestApp(QMainWindow):
         else:
             qnum_input = (self.explain_question_var.text() or "").strip()
             if not qnum_input:
-                QMessageBox.warning(self, "Aviso", "Insira um número de pergunta válido.")
+                QMessageBox.warning(self, tr("Aviso"), tr("Insira um número de pergunta válido."))
                 return
 
             # Try to match both "345" and "Questão 345" formats
             # First, extract just the number from input
             num_match = re.search(r'\d+', qnum_input)
             if not num_match:
-                QMessageBox.warning(self, "Aviso", "Insira um número de pergunta válido.")
+                QMessageBox.warning(self, tr("Aviso"), tr("Insira um número de pergunta válido."))
                 return
 
             search_num = num_match.group()
@@ -349,7 +338,7 @@ class GIFT_TestApp(QMainWindow):
                         break
 
             if not question:
-                QMessageBox.warning(self, "Aviso", f"Pergunta {qnum_input} não encontrada.")
+                QMessageBox.warning(self, tr("Aviso"), tr("Pergunta {0} não encontrada.").format(qnum_input))
                 return
 
             qnum = str(question.number)
@@ -366,18 +355,18 @@ class GIFT_TestApp(QMainWindow):
         model = self.preferences.get_llm_model(provider)
 
         # Show viewer immediately with loading state
-        loading_html = """
+        loading_html = f"""
         <div style='text-align:center; padding-top:50px; font-family:sans-serif; color:#666;'>
-            <h2>A gerar explicação...</h2>
-            <p>Aguarde enquanto o modelo processa a sua pergunta.</p>
-            <p><i>Isto pode demorar alguns segundos.</i></p>
+            <h2>{tr("A gerar explicação")}...</h2>
+            <p>{tr("Aguarde enquanto o modelo processa a sua pergunta.")}.</p>
+            <p><i>{tr("Isto pode demorar alguns segundos.")}.</i></p>
         </div>
         """
 
         # Open dialog and keep references
         dialog, viewer_widget, time_label, explain_btn = show_explanation(
             self,
-            f"Explicação: {qnum}",
+            tr("Explicação") + f": {qnum}",
             loading_html,
             question_text=question.text,
             question_options=question.options,
@@ -501,7 +490,7 @@ class GIFT_TestApp(QMainWindow):
             # Update time_label to loading
             try:
                 if time_label_ref[0]:
-                    time_label_ref[0].setText("A gerar...")
+                    time_label_ref[0].setText(tr("A gerar") + "...")
             except:
                 pass
             self._llm_worker.finished.connect(on_success)
@@ -515,14 +504,14 @@ class GIFT_TestApp(QMainWindow):
         """Limpa todo o histórico de testes."""
         response = QMessageBox.question(
             self,
-            "Confirmar",
-            "Tem a certeza que deseja limpar todo o histórico de testes?\n\nEsta ação não pode ser desfeita.",
+            tr("Confirmar"),
+            tr("Tem a certeza que deseja limpar todo o histórico de testes?\n\nEsta ação não pode ser desfeita."),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
         if response == QMessageBox.StandardButton.Yes:
             self.logger.clear_history()
-            QMessageBox.information(self, "Sucesso", "Histórico limpo com sucesso!")
+            QMessageBox.information(self, tr("Sucesso"), tr("Histórico limpo com sucesso!"))
             # Atualiza a tela
             self.show_selection_screen()
 
@@ -532,7 +521,7 @@ class GIFT_TestApp(QMainWindow):
         selected_categories = [cat for cat, checkbox in self.category_vars.items() if checkbox.isChecked()]
 
         if not selected_categories:
-            QMessageBox.warning(self, "Aviso", "Por favor, selecione pelo menos uma categoria!")
+            QMessageBox.warning(self, tr("Aviso"), tr("Por favor, selecione pelo menos uma categoria!"))
             return
 
         # Seleciona perguntas aleatórias de cada categoria
@@ -613,6 +602,22 @@ class GIFT_TestApp(QMainWindow):
 def main():
     """Função principal."""
     app = QApplication(sys.argv)
+    
+    if QApplication.primaryScreen() is None:
+        print("No display available. The application requires a graphical display to run.")
+        return
+    
+    # Inicializar internacionalização
+    from data.preferences import Preferences
+    prefs = Preferences()
+    language = prefs.get_language()
+    
+    if language == 'system':
+        from data.i18n import get_default_language
+        language = get_default_language()
+    
+    initialize_translator(app, language)
+    
     window = GIFT_TestApp()
     window.show()
     sys.exit(app.exec())

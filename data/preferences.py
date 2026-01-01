@@ -25,6 +25,7 @@ class Preferences:
             self._write_preferences({
                 'last_gift_file': '',
                 'theme': 'default',
+                'language': 'system',  # 'pt', 'en', ou 'system'
                 'ui': {
                     'main_window_width_percent': 66,
                     'main_window_height_percent': 66,
@@ -222,6 +223,17 @@ class Preferences:
         """Guarda o número de perguntas para o teste rápido."""
         prefs = self._read_preferences()
         prefs.setdefault('ui', {})['quick_test_questions'] = count
+        self._write_preferences(prefs)
+
+    def get_language(self) -> str:
+        """Retorna a língua preferida ('pt', 'en', ou 'system')."""
+        prefs = self._read_preferences()
+        return prefs.get('language', 'system')
+
+    def set_language(self, language: str):
+        """Guarda a língua preferida."""
+        prefs = self._read_preferences()
+        prefs['language'] = language
         self._write_preferences(prefs)
 
     def _read_preferences(self) -> dict:

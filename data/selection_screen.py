@@ -9,6 +9,7 @@ from PySide6.QtCore import Qt
 import random
 import re
 from .history_screen import HistoryScreen
+from .i18n import tr
 
 
 class SelectionScreen:
@@ -38,7 +39,7 @@ class SelectionScreen:
         content_layout.setContentsMargins(0, 0, 0, 0)
 
         # Título centrado
-        title = QLabel("Sistema de Testes GIFT")
+        title = QLabel(tr("Sistema de Testes GIFT"))
         title_font = title.font()
         title_font.setPointSize(title_font.pointSize() + 6)
         title_font.setBold(True)
@@ -70,22 +71,22 @@ class SelectionScreen:
 
     def _create_config_group(self, layout):
         """Cria grupo de Configurações com ficheiro e modelo atual."""
-        grp = QGroupBox("Configurações")
+        grp = QGroupBox(tr("Configurações"))
         grp_layout = QVBoxLayout()
         grp_layout.setSpacing(2)
 
-        current_file = self.app.current_gift_file or "(nenhum ficheiro selecionado)"
+        current_file = self.app.current_gift_file or tr("(nenhum ficheiro selecionado)")
         provider = self.app.preferences.get_llm_provider()
-        model = self.app.preferences.get_llm_model(provider) or "(modelo não definido)"
+        model = self.app.preferences.get_llm_model(provider) or tr("(modelo não definido)")
 
         # Ficheiro
-        grp_layout.addWidget(QLabel(f"Ficheiro: {current_file}"))
+        grp_layout.addWidget(QLabel(tr("Ficheiro:") + f" {current_file}"))
 
         # Modelo
-        grp_layout.addWidget(QLabel(f"Modelo: {provider} / {model}"))
+        grp_layout.addWidget(QLabel(tr("Modelo:") + f" {provider} / {model}"))
 
         # Botão Configurar
-        config_btn = QPushButton("Configurar")
+        config_btn = QPushButton(tr("Configurar"))
         config_btn.clicked.connect(self.app.show_settings)
         grp_layout.addWidget(config_btn, alignment=Qt.AlignmentFlag.AlignLeft)
 
@@ -95,22 +96,22 @@ class SelectionScreen:
 
     def _create_history_group(self, layout):
         """Cria grupo de Histórico com estatísticas e botão Ver Histórico."""
-        grp = QGroupBox("Histórico")
+        grp = QGroupBox(tr("Histórico"))
         grp_layout = QVBoxLayout()
         grp_layout.setSpacing(2)
 
         # Estatísticas do ficheiro atual
         stats = self.app.logger.get_statistics(self.app.current_gift_file)
         if stats and stats.get('total_tests', 0) > 0:
-            stats_text = f"Testes realizados: {stats['total_tests']} | Média de acertos: {stats['average_score']}%"
+            stats_text = tr("Testes realizados:") + f" {stats['total_tests']} | " + tr("Média de acertos:") + f" {stats['average_score']}%"
             stats_label = QLabel(stats_text)
             stats_label.setStyleSheet("font-style: italic;")
             grp_layout.addWidget(stats_label)
         else:
-            grp_layout.addWidget(QLabel("Nenhum teste realizado ainda."))
+            grp_layout.addWidget(QLabel(tr("Nenhum teste realizado ainda.")))
 
         # Botão Ver Histórico
-        history_btn = QPushButton("Ver Histórico")
+        history_btn = QPushButton(tr("Ver Histórico"))
         history_btn.clicked.connect(self._show_history)
         grp_layout.addWidget(history_btn, alignment=Qt.AlignmentFlag.AlignLeft)
 
@@ -126,7 +127,7 @@ class SelectionScreen:
     def _create_categories_section(self, layout):
         """Cria secção de seleção de categorias (desdobrável)."""
         # Botão de toggle
-        toggle_btn = QPushButton("Seleção de categorias (Clique para expandir/colapsar)")
+        toggle_btn = QPushButton(tr("Seleção de categorias (Clique para expandir/colapsar)"))
         toggle_btn.setCheckable(True)
         toggle_btn.setChecked(False)  # Inicialmente fechado
         toggle_btn.setStyleSheet("""
@@ -230,7 +231,7 @@ class SelectionScreen:
 
     def _show_no_file_message(self, layout):
         """Mostra mensagem quando não há ficheiro carregado."""
-        label = QLabel("Nenhum ficheiro GIFT carregado.\nAbra Configurações para escolher um ficheiro.")
+        label = QLabel(tr("Nenhum ficheiro GIFT carregado.") + "\n" + tr("Abra Configurações para escolher um ficheiro."))
         label.setStyleSheet("color: gray; font-style: italic;")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(label)
@@ -247,28 +248,28 @@ class SelectionScreen:
         # Adiciona stretches para centralizar
         test_layout.addStretch()
 
-        select_all_btn = QPushButton("Selecionar Todas")
+        select_all_btn = QPushButton(tr("Selecionar Todas"))
         select_all_btn.clicked.connect(self.app.select_all_categories)
         select_all_btn.setEnabled(has_questions)
-        select_all_btn.setToolTip("Marca todas as categorias da lista.")
+        select_all_btn.setToolTip(tr("Marca todas as categorias da lista."))
         test_layout.addWidget(select_all_btn)
 
-        deselect_all_btn = QPushButton("Desmarcar Todas")
+        deselect_all_btn = QPushButton(tr("Desmarcar Todas"))
         deselect_all_btn.clicked.connect(self.app.deselect_all_categories)
         deselect_all_btn.setEnabled(has_questions)
-        deselect_all_btn.setToolTip("Desmarca todas as categorias da lista.")
+        deselect_all_btn.setToolTip(tr("Desmarca todas as categorias da lista."))
         test_layout.addWidget(deselect_all_btn)
 
-        start_test_btn = QPushButton("Iniciar Teste Personalizado")
+        start_test_btn = QPushButton(tr("Iniciar Teste Personalizado"))
         start_test_btn.clicked.connect(self.app.start_test)
         start_test_btn.setEnabled(has_questions)
         start_test_btn.setStyleSheet("font-weight: bold; padding: 5px;")
-        start_test_btn.setToolTip("Inicia um teste apenas com as categorias e quantidades selecionadas acima.")
+        start_test_btn.setToolTip(tr("Inicia um teste apenas com as categorias e quantidades selecionadas acima."))
         test_layout.addWidget(start_test_btn)
 
         # Botão Teste Rápido
         quick_test_count = self.app.preferences.get_quick_test_questions()
-        quick_test_btn = QPushButton(f"Teste Rápido ({quick_test_count} perguntas)")
+        quick_test_btn = QPushButton(tr("Teste Rápido") + f" ({quick_test_count} " + tr("perguntas") + ")")
         quick_test_btn.clicked.connect(self.app.start_quick_test)
         quick_test_btn.setEnabled(has_questions)
         quick_test_btn.setStyleSheet("""
@@ -285,8 +286,7 @@ class SelectionScreen:
             }
         """)
         quick_test_btn.setToolTip(
-            f"Inicia imediatamente um teste com {quick_test_count} perguntas "
-            "aleatórias de todas as categorias."
+            tr("Inicia imediatamente um teste com") + f" {quick_test_count} " + tr("perguntas aleatórias de todas as categorias.")
         )
         test_layout.addWidget(quick_test_btn)
 
@@ -305,14 +305,14 @@ class SelectionScreen:
 
         bottom_layout.addStretch()
 
-        about_btn = QPushButton("Sobre o Programa")
+        about_btn = QPushButton(tr("Sobre o Programa"))
         about_btn.clicked.connect(self.app.show_about)
-        about_btn.setToolTip("Mostra informações sobre o autor, funcionalidades e instruções de uso.")
+        about_btn.setToolTip(tr("Mostra informações sobre o autor, funcionalidades e instruções de uso."))
         bottom_layout.addWidget(about_btn)
 
-        exit_btn = QPushButton("Sair")
+        exit_btn = QPushButton(tr("Sair"))
         exit_btn.clicked.connect(self.app.close)
-        exit_btn.setToolTip("Fecha a aplicação.")
+        exit_btn.setToolTip(tr("Fecha a aplicação."))
         bottom_layout.addWidget(exit_btn)
 
         bottom_layout.addStretch()
@@ -328,18 +328,18 @@ class SelectionScreen:
         extra_layout.addStretch()
 
         # Botão Explorar (Novo)
-        explore_btn = QPushButton("Explorar / Pesquisar Perguntas")
+        explore_btn = QPushButton(tr("Explorar / Pesquisar Perguntas"))
         explore_btn.clicked.connect(self.app.show_question_browser)
         explore_btn.setEnabled(has_questions)
         explore_btn.setStyleSheet("font-weight: bold; color: #2196F3;")
-        explore_btn.setToolTip("Abre uma janela para pesquisar e explorar todas as perguntas disponíveis.")
+        explore_btn.setToolTip(tr("Abre uma janela para pesquisar e explorar todas as perguntas disponíveis."))
         extra_layout.addWidget(explore_btn)
 
         extra_layout.addSpacing(20)
-        extra_layout.addWidget(QLabel("|"))
+        extra_layout.addWidget(QLabel("|")),
         extra_layout.addSpacing(20)
 
-        extra_layout.addWidget(QLabel("Explicar pergunta nº:"))
+        extra_layout.addWidget(QLabel(tr("Explicar pergunta nº:")))
 
         explain_entry = QLineEdit()
         if has_questions and self.app.parser.questions:
@@ -354,10 +354,10 @@ class SelectionScreen:
         self.app.explain_question_var = explain_entry
         extra_layout.addWidget(explain_entry)
 
-        explain_btn = QPushButton("Explicar")
+        explain_btn = QPushButton(tr("Explicar"))
         explain_btn.clicked.connect(self.app.explain_question)
         explain_btn.setEnabled(has_questions)
-        explain_btn.setToolTip("Gera uma explicação detalhada para a pergunta com o número indicado.")
+        explain_btn.setToolTip(tr("Gera uma explicação detalhada para a pergunta com o número indicado."))
         extra_layout.addWidget(explain_btn)
 
         # Adiciona stretch para centralizar

@@ -11,6 +11,7 @@ llm_tests.html
 #logs
 gift2boolean_error.log
 http_log.txt
+perguntas_anatomia/*
 
 # Build artifacts
 dist/

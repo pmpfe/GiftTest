@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
                                QPushButton, QAbstractItemView, QComboBox, QWidget,
                                QRadioButton, QButtonGroup, QMessageBox)
 from PySide6.QtCore import Qt
+from .i18n import tr
 
 
 class QuestionAnswerDialog(QDialog):
@@ -12,7 +13,7 @@ class QuestionAnswerDialog(QDialog):
         super().__init__(parent)
         self.question = question
         self.selected_answer = None
-        self.setWindowTitle(f"Responder: {question.number}")
+        self.setWindowTitle(tr("Responder: {0}").format(question.number))
         self.resize(600, 400)
         self.setup_ui()
 
@@ -39,11 +40,11 @@ class QuestionAnswerDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        submit_btn = QPushButton("Ver Explicação")
+        submit_btn = QPushButton(tr("Ver Explicação"))
         submit_btn.clicked.connect(self.submit_answer)
         btn_layout.addWidget(submit_btn)
 
-        cancel_btn = QPushButton("Cancelar")
+        cancel_btn = QPushButton(tr("Cancelar"))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
@@ -72,7 +73,7 @@ class QuestionBrowser(QDialog):
         super().__init__(parent)
         self.questions = questions
         self.parent_app = parent
-        self.setWindowTitle("Explorador de Perguntas")
+        self.setWindowTitle(tr("Explorador de Perguntas"))
         self.resize(1100, 700)
         self.setup_ui()
 
@@ -83,9 +84,9 @@ class QuestionBrowser(QDialog):
         search_layout = QHBoxLayout()
 
         # Category filter
-        search_layout.addWidget(QLabel("Categoria:"))
+        search_layout.addWidget(QLabel(tr("Categoria:")))
         self.category_combo = QComboBox()
-        self.category_combo.addItem("Todas")
+        self.category_combo.addItem(tr("Todas"))
         categories = sorted(list(set(q.category for q in self.questions if q.category)))
         self.category_combo.addItems(categories)
         self.category_combo.currentTextChanged.connect(self.apply_filters)
@@ -94,9 +95,9 @@ class QuestionBrowser(QDialog):
         search_layout.addSpacing(20)
 
         # Text search
-        search_layout.addWidget(QLabel("Pesquisar:"))
+        search_layout.addWidget(QLabel(tr("Pesquisar:")))
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Digite para filtrar por texto, respostas ou número...")
+        self.search_input.setPlaceholderText(tr("Digite para filtrar por texto, respostas ou número..."))
         self.search_input.textChanged.connect(self.apply_filters)
         search_layout.addWidget(self.search_input)
 
@@ -105,7 +106,7 @@ class QuestionBrowser(QDialog):
         # Table
         self.table = QTableWidget()
         self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["#", "Categoria", "Pergunta", "Respostas", ""])
+        self.table.setHorizontalHeaderLabels([tr("#"), tr("Categoria"), tr("Pergunta"), tr("Respostas"), ""])
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
@@ -118,7 +119,7 @@ class QuestionBrowser(QDialog):
         layout.addWidget(self.table)
 
         # Help text
-        help_lbl = QLabel("🔍 = Ver explicação  |  ❓ = Responder primeiro e depois ver explicação  |  Duplo clique = Ver explicação")
+        help_lbl = QLabel(tr("🔍 = Ver explicação  |  ❓ = Responder primeiro e depois ver explicação  |  Duplo clique = Ver explicação"))
         help_lbl.setStyleSheet("color: gray; font-style: italic;")
         layout.addWidget(help_lbl)
 
@@ -159,7 +160,7 @@ class QuestionBrowser(QDialog):
 
             # Question mark button - answer first, then explain
             answer_btn = QPushButton("❓")
-            answer_btn.setToolTip("Responder primeiro e depois ver explicação")
+            answer_btn.setToolTip(tr("Responder primeiro e depois ver explicação"))
             answer_btn.setFixedSize(28, 28)
             answer_btn.setStyleSheet("QPushButton { font-size: 14px; }")
             answer_btn.clicked.connect(lambda checked, question=q: self.on_answer_then_explain(question))
@@ -167,7 +168,7 @@ class QuestionBrowser(QDialog):
 
             # Magnifying glass button - direct explanation
             explain_btn = QPushButton("🔍")
-            explain_btn.setToolTip("Ver explicação")
+            explain_btn.setToolTip(tr("Ver explicação"))
             explain_btn.setFixedSize(28, 28)
             explain_btn.setStyleSheet("QPushButton { font-size: 14px; }")
             explain_btn.clicked.connect(lambda checked, question=q: self.on_explain(question))
@@ -184,7 +185,7 @@ class QuestionBrowser(QDialog):
 
             # Filter by category
             item_cat = self.table.item(row, 1)
-            if category != "Todas" and item_cat.text() != category:
+            if category != tr("Todas") and item_cat.text() != category:
                 show = False
 
             # Filter by text (if still showing)

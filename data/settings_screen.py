@@ -17,6 +17,7 @@ from .constants import (
     MIN_QUICK_TEST_QUESTIONS, MAX_QUICK_TEST_QUESTIONS,
     LLM_PROVIDERS
 )
+from .i18n import tr, get_current_language, change_language
 
 
 class SettingsScreen:
@@ -31,7 +32,7 @@ class SettingsScreen:
         main_layout = QVBoxLayout(central)
         main_layout.setContentsMargins(20, 20, 20, 20)
 
-        title = QLabel("Configurações")
+        title = QLabel(tr("Settings"))
         title_font = title.font()
         title_font.setPointSize(title_font.pointSize() + 6)
         title_font.setBold(True)
@@ -44,8 +45,8 @@ class SettingsScreen:
 
         tab_general = QWidget()
         tab_llm = QWidget()
-        tabs.addTab(tab_general, "Geral")
-        tabs.addTab(tab_llm, "LLM")
+        tabs.addTab(tab_general, tr("Settings"))
+        tabs.addTab(tab_llm, tr("LLM"))
 
         self._build_general(tab_general)
         self._build_llm(tab_llm)
@@ -58,11 +59,11 @@ class SettingsScreen:
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_layout.addStretch()
 
-        back_btn = QPushButton("Voltar")
+        back_btn = QPushButton(tr("Back"))
         back_btn.clicked.connect(self.app.show_selection_screen)
         button_layout.addWidget(back_btn)
 
-        save_btn = QPushButton("Guardar")
+        save_btn = QPushButton(tr("Save"))
         save_btn.clicked.connect(self._save)
         button_layout.addWidget(save_btn)
 
@@ -72,18 +73,43 @@ class SettingsScreen:
     def _build_general(self, parent):
         layout = QVBoxLayout(parent)
 
+        # Language selection
+        lang_grp = QGroupBox(tr("Language"))
+        lang_layout = QHBoxLayout()
+
+        lang_layout.addWidget(QLabel(tr("Language") + ":"))
+        self.language_combo = QComboBox()
+        self.language_combo.addItem(tr("System Language"), 'system')
+        self.language_combo.addItem(tr("Portuguese"), 'pt')
+        self.language_combo.addItem(tr("English"), 'en')
+        
+        current_lang = self.app.preferences.get_language()
+        if current_lang == 'system':
+            from .i18n import get_default_language
+            current_lang = get_default_language()
+        
+        index = self.language_combo.findData(self.app.preferences.get_language())
+        if index >= 0:
+            self.language_combo.setCurrentIndex(index)
+        
+        lang_layout.addWidget(self.language_combo)
+        lang_layout.addStretch()
+        lang_grp.setLayout(lang_layout)
+        layout.addWidget(lang_grp)
+        layout.addSpacing(15)
+
         # File selection
-        file_grp = QGroupBox("Ficheiro GIFT")
+        file_grp = QGroupBox(tr("Ficheiro GIFT"))
         file_layout = QHBoxLayout()
 
-        file_layout.addWidget(QLabel("Caminho:"))
+        file_layout.addWidget(QLabel(tr("Caminho:")))
 
         self.file_path_entry = QLineEdit()
         self.file_path_entry.setText(self.app.current_gift_file or "")
         self.file_path_entry.setReadOnly(True)
         file_layout.addWidget(self.file_path_entry)
 
-        choose_btn = QPushButton("Escolher...")
+        choose_btn = QPushButton(tr("Escolher..."))
         choose_btn.clicked.connect(self._choose_file)
         file_layout.addWidget(choose_btn)
 
@@ -92,13 +118,13 @@ class SettingsScreen:
         layout.addSpacing(15)
 
         # Window sizes
-        ui_grp = QGroupBox("Tamanhos de Janela")
+        ui_grp = QGroupBox(tr("Tamanhos de Janela"))
         ui_layout = QVBoxLayout()
 
         # Main window size
         main_win_layout = QHBoxLayout()
-        main_win_layout.addWidget(QLabel("Janela principal (% do ecrã):"))
-        main_win_layout.addWidget(QLabel("Largura:"))
+        main_win_layout.addWidget(QLabel(tr("Janela principal (% do ecrã):")))
+        main_win_layout.addWidget(QLabel(tr("Largura:")))
 
         main_w_pct, main_h_pct = self.app.preferences.get_main_window_size_percent()
         self.main_width_spin = QSpinBox()
@@ -107,7 +133,7 @@ class SettingsScreen:
         self.main_width_spin.setValue(main_w_pct)
         main_win_layout.addWidget(self.main_width_spin)
 
-        main_win_layout.addWidget(QLabel("Altura:"))
+        main_win_layout.addWidget(QLabel(tr("Altura:")))
         self.main_height_spin = QSpinBox()
         self.main_height_spin.setRange(MIN_WINDOW_PERCENT, MAX_WINDOW_PERCENT)
         self.main_height_spin.setSuffix("%")
@@ -118,8 +144,8 @@ class SettingsScreen:
 
         # Explanation window size
         expl_win_layout = QHBoxLayout()
-        expl_win_layout.addWidget(QLabel("Janela de explicação (% da janela principal):"))
-        expl_win_layout.addWidget(QLabel("Largura:"))
+        expl_win_layout.addWidget(QLabel(tr("Janela de explicação (% da janela principal):")))
+        expl_win_layout.addWidget(QLabel(tr("Largura:")))
 
         expl_w_pct, expl_h_pct = self.app.preferences.get_explanation_window_size_percent()
         self.expl_width_spin = QSpinBox()
@@ -128,7 +154,7 @@ class SettingsScreen:
         self.expl_width_spin.setValue(expl_w_pct)
         expl_win_layout.addWidget(self.expl_width_spin)
 
-        expl_win_layout.addWidget(QLabel("Altura:"))
+        expl_win_layout.addWidget(QLabel(tr("Altura:")))
         self.expl_height_spin = QSpinBox()
         self.expl_height_spin.setRange(MIN_WINDOW_PERCENT, MAX_WINDOW_PERCENT)
         self.expl_height_spin.setSuffix("%")
@@ -142,10 +168,10 @@ class SettingsScreen:
         layout.addSpacing(15)
 
         # Teste rápido
-        quick_test_grp = QGroupBox("Teste Rápido")
+        quick_test_grp = QGroupBox(tr("Teste Rápido"))
         quick_layout = QHBoxLayout()
 
-        quick_layout.addWidget(QLabel("Número de perguntas:"))
+        quick_layout.addWidget(QLabel(tr("Número de perguntas:")))
 
         self.quick_test_spin = QSpinBox()
         self.quick_test_spin.setRange(MIN_QUICK_TEST_QUESTIONS, MAX_QUICK_TEST_QUESTIONS)
@@ -160,7 +186,7 @@ class SettingsScreen:
         # Histórico
         history_grp = QGroupBox("Histórico")
         hist_layout = QHBoxLayout()
-        reset_btn = QPushButton("Reiniciar Histórico de Testes")
+        reset_btn = QPushButton(tr("Reiniciar Histórico de Testes"))
         reset_btn.clicked.connect(self.app.clear_history)
         hist_layout.addWidget(reset_btn)
         hist_layout.addStretch()
@@ -174,7 +200,7 @@ class SettingsScreen:
     def _choose_file(self):
         filename, _ = QFileDialog.getOpenFileName(
             self.app,
-            "Escolher ficheiro GIFT",
+            tr("Escolher ficheiro GIFT"),
             "",
             "GIFT files (*.gift.txt);;Text files (*.txt);;All files (*.*)"
         )
@@ -192,7 +218,7 @@ class SettingsScreen:
         top_layout = QHBoxLayout(top_widget)
         top_layout.setContentsMargins(0, 0, 0, 0)
 
-        top_layout.addWidget(QLabel("Provedor:"))
+        top_layout.addWidget(QLabel(tr("Provedor:")))
 
         self.provider_combo = QComboBox()
         self.provider_combo.addItems(LLM_PROVIDERS)
@@ -209,7 +235,7 @@ class SettingsScreen:
         self.key_entry.setEchoMode(QLineEdit.EchoMode.Password)
         top_layout.addWidget(self.key_entry)
 
-        instructions_btn = QPushButton("Instruções para obter API KEY")
+        instructions_btn = QPushButton(tr("Instruções para obter API KEY"))
         instructions_btn.clicked.connect(self._open_api_key_instructions)
         top_layout.addWidget(instructions_btn)
 
@@ -221,14 +247,14 @@ class SettingsScreen:
         model_grp = QGroupBox("Modelo")
         model_layout = QHBoxLayout()
 
-        model_layout.addWidget(QLabel("Modelo:"))
+        model_layout.addWidget(QLabel(tr("Modelo:")))
 
         self.models_combo = QComboBox()
         self.models_combo.setEditable(True)
         self.models_combo.setCurrentText(prefs.get_llm_model(self.provider_combo.currentText()))
         model_layout.addWidget(self.models_combo)
 
-        fetch_btn = QPushButton("Obter Modelos")
+        fetch_btn = QPushButton(tr("Obter Modelos"))
         fetch_btn.clicked.connect(self._fetch_models)
         model_layout.addWidget(fetch_btn)
 
@@ -240,7 +266,7 @@ class SettingsScreen:
         prompt_grp = QGroupBox("Prompt")
         prompt_layout = QVBoxLayout()
 
-        prompt_layout.addWidget(QLabel("Template usado antes da pergunta:"))
+        prompt_layout.addWidget(QLabel(tr("Template usado antes da pergunta:")))
 
         self.prompt_text = QTextEdit()
         self.prompt_text.setPlainText(prefs.get_llm_prompt_template())
@@ -251,10 +277,10 @@ class SettingsScreen:
         layout.addSpacing(8)
 
         # System prompt
-        system_grp = QGroupBox("System Prompt (apenas para modelos que o suportam)")
+        system_grp = QGroupBox(tr("System Prompt") + " " + tr("(apenas para modelos que o suportam)"))
         system_layout = QVBoxLayout()
 
-        system_layout.addWidget(QLabel("Prompt de sistema para definir o papel do modelo:"))
+        system_layout.addWidget(QLabel(tr("Prompt de sistema para definir o papel do modelo:")))
 
         self.system_prompt_text = QTextEdit()
         self.system_prompt_text.setPlainText(prefs.get_llm_system_prompt())
@@ -265,7 +291,7 @@ class SettingsScreen:
         layout.addSpacing(8)
 
         # Test area
-        test_btn = QPushButton("Guardar e Testar LLM")
+        test_btn = QPushButton(tr("Guardar e Testar LLM"))
         test_btn.clicked.connect(self._test_llm)
         layout.addWidget(test_btn, alignment=Qt.AlignmentFlag.AlignLeft)
 
@@ -386,6 +412,34 @@ class SettingsScreen:
 
     def _save(self):
         prefs = self.app.preferences
+        
+        # Language
+        if hasattr(self, 'language_combo'):
+            new_language = self.language_combo.currentData()
+            old_language = prefs.get_language()
+            
+            if new_language == 'system':
+                from .i18n import get_default_language
+                new_language_resolved = get_default_language()
+            else:
+                new_language_resolved = new_language
+            
+            if old_language != new_language:
+                prefs.set_language(new_language)
+                if old_language != 'system':
+                    from .i18n import get_default_language
+                    old_language_resolved = get_default_language() if old_language == 'system' else old_language
+                else:
+                    old_language_resolved = get_default_language()
+                
+                if old_language_resolved != new_language_resolved:
+                    change_language(self.app, new_language_resolved)
+                    QMessageBox.information(
+                        self.app, 
+                        tr("Settings"),
+                        tr("Language changed. Restart to apply.")
+                    )
+        
         # File
         if hasattr(self, 'file_path_entry') and self.file_path_entry.text():
             prefs.set_last_gift_file(self.file_path_entry.text())
