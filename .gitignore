@@ -42,6 +42,13 @@ packaging/macos/dmg-tmp/
 # Platform-specific artifacts
 *.iso
 
+# Android build artifacts
+.buildozer/
+bin/
+*.apk
+*.aab
+local.properties
+
 # Distribution / packaging
 .Python
 env/

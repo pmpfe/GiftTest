@@ -105,6 +105,35 @@ jobs:
   #         name: macos-binary
   #         path: GiftTest_x64
 
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install buildozer and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk
+          python -m pip install --upgrade pip
+          pip install buildozer cython
+          pip install -r requirements.txt
+
+      - name: Build Android APK
+        run: |
+          buildozer android debug
+
+      - name: Upload Android APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: bin/*.apk
+
   source-zip:
     runs-on: ubuntu-latest
     steps:
@@ -128,7 +157,7 @@ jobs:
           path: GiftTest-source.zip
 
   create-release:
-    needs: [build-linux, build-windows, source-zip]
+    needs: [build-linux, build-windows, build-android, source-zip]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -144,5 +173,6 @@ jobs:
           files: |
             GiftTest_x64.bin
             GiftTest_x64.exe
+            *.apk
             GiftTest-source.zip
           generate_release_notes: true
