@@ -5,29 +5,19 @@ Aplicação para praticar perguntas em formato GIFT com possibilidade de explica
 ![Explanation](assets/shot2_explain.png)
 ![Main Menu](assets/shot1_menu.png)
 
-## Dependências
-
-A aplicação usa apenas bibliotecas Qt:
-
-- `PySide6` (widgets, layouts)
-
-Instalação:
-
-**Arch Linux:**
-```bash
-sudo pacman -S pyside6
-```
+### Instalação via Python
 
 **Outras distros / venv:**
 ```bash
 pip install -r requirements.txt
 ```
 
-## Executar
+### Instalação via Executável
 
-```bash
-python gift_test_practice.py
-```
+Para Windows e Linux, pode descarregar executáveis pré-compilados:
+
+- **[Últimas Releases →](https://github.com/pmpfe/GiftTest/releases/latest)**
+
 
 ## Funcionalidades
 - Seleção de categorias e número de perguntas
