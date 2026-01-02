@@ -17,7 +17,7 @@ elif sys.platform == 'darwin':
     icon_file = 'assets/icon.icns'
 
 a = Analysis(
-    ['gift_test_practice.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[('data', 'data')],

@@ -40,7 +40,7 @@ build_linux() {
         --name "gift-test-practice" \
         --add-data "data:data" \
         --distpath "$LINUX_DIST" \
-        gift_test_practice.py
+        main.py
     
     echo -e "${GREEN}✓ Linux build complete: $LINUX_DIST/gift-test-practice${NC}"
 }
@@ -64,7 +64,7 @@ build_macos() {
         --icon="assets/icon.icns" \
         --add-data "data:data" \
         --distpath "$MACOS_DIST" \
-        gift_test_practice.py
+        main.py
     
     # Create DMG
     echo "Creating DMG installer..."
@@ -96,7 +96,7 @@ build_windows() {
         --icon="assets/icon.ico" \
         --add-data "data:data" \
         --distpath "$WINDOWS_DIST" \
-        gift_test_practice.py
+        main.py
     
     echo -e "${GREEN}✓ Windows build complete: $WINDOWS_DIST/GiftTestPractice.exe${NC}"
     

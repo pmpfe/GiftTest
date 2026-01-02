@@ -41,7 +41,7 @@ jobs:
         run: |
           nuitka ${{ env.NUITKA_COMMON }} \
             --output-filename=GiftTest_x64.bin \
-            gift_test_practice.py
+            main.py
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
@@ -68,7 +68,7 @@ jobs:
 
       - name: Build Windows binary
         run: |
-          nuitka ${{ env.NUITKA_COMMON }} --mingw64 --windows-console-mode=disable --assume-yes-for-downloads --output-filename=GiftTest_x64.exe gift_test_practice.py
+          nuitka ${{ env.NUITKA_COMMON }} --mingw64 --windows-console-mode=disable --assume-yes-for-downloads --output-filename=GiftTest_x64.exe main.py
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -97,7 +97,7 @@ jobs:
   #       run: |
   #         nuitka ${{ env.NUITKA_COMMON }} \
   #           --output-filename=GiftTest_x64 \
-  #           gift_test_practice.py
+  #           main.py
 
   #     - name: Upload macOS artifact
   #       uses: actions/upload-artifact@v4

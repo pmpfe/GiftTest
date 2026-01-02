@@ -119,6 +119,54 @@ class SelectionScreen:
         layout.addWidget(grp)
         layout.addSpacing(10)
 
+    def _change_language_from_main(self, language_code: str):
+        """Muda a linguagem com confirmação e reinicia a aplicação."""
+        from .i18n import get_default_language
+        from PySide6.QtWidgets import QMessageBox
+        from PySide6.QtCore import QProcess
+        import sys
+        
+        current_lang = self.app.preferences.get_language()
+        
+        # Se a língua já está configurada, não faz nada
+        if current_lang == language_code:
+            return
+        
+        # Mensagens de confirmação
+        language_names = {
+            'pt': 'Português',
+            'en': 'English'
+        }
+        
+        # Obter os textos na linguagem atual
+        current_language_actual = current_lang
+        if current_language_actual == 'system':
+            current_language_actual = get_default_language()
+        
+        # Determinar o texto de confirmação na língua atual
+        if current_language_actual == 'pt':
+            question_text = f"Deseja alterar a língua para {language_names.get(language_code, language_code)} e reiniciar a aplicação?"
+        else:
+            question_text = f"Do you want to change the language to {language_names.get(language_code, language_code)} and restart the application?"
+        
+        reply = QMessageBox.question(
+            self.app,
+            "Language" if current_language_actual == 'en' else "Idioma",
+            question_text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            # Guardar a nova linguagem
+            self.app.preferences.set_language(language_code)
+            
+            # Reiniciar a aplicação usando QProcess
+            QProcess.startDetached(sys.executable, sys.argv)
+            
+            # Fechar a aplicação atual
+            from PySide6.QtWidgets import QApplication
+            QApplication.quit()
+
     def _show_history(self):
         """Abre a tela de histórico."""
         history_screen = HistoryScreen(self.app)
@@ -304,6 +352,27 @@ class SelectionScreen:
         bottom_layout.setContentsMargins(0, 0, 0, 0)
 
         bottom_layout.addStretch()
+
+        # Botões de bandeira para mudança rápida de idioma
+        flag_pt_btn = QPushButton("\U0001F1F5\U0001F1F9")
+        flag_pt_btn.setMaximumWidth(50)
+        flag_pt_btn.setMaximumHeight(40)
+        flag_pt_font = flag_pt_btn.font()
+        flag_pt_font.setPointSize(18)
+        flag_pt_btn.setFont(flag_pt_font)
+        flag_pt_btn.setToolTip("Português")
+        flag_pt_btn.clicked.connect(lambda: self._change_language_from_main('pt'))
+        bottom_layout.addWidget(flag_pt_btn)
+        
+        flag_en_btn = QPushButton("\U0001F1EC\U0001F1E7")
+        flag_en_btn.setMaximumWidth(50)
+        flag_en_btn.setMaximumHeight(40)
+        flag_en_font = flag_en_btn.font()
+        flag_en_font.setPointSize(18)
+        flag_en_btn.setFont(flag_en_font)
+        flag_en_btn.setToolTip("English")
+        flag_en_btn.clicked.connect(lambda: self._change_language_from_main('en'))
+        bottom_layout.addWidget(flag_en_btn)
 
         about_btn = QPushButton(tr("Sobre o Programa"))
         about_btn.clicked.connect(self.app.show_about)

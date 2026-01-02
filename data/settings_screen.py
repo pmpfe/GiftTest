@@ -93,6 +93,32 @@ class SettingsScreen:
             self.language_combo.setCurrentIndex(index)
         
         lang_layout.addWidget(self.language_combo)
+        
+        # Language flag buttons
+        flag_pt_btn = QPushButton("🇵🇹")
+        flag_pt_btn.setMaximumWidth(60)
+        flag_pt_btn.setMinimumHeight(40)
+        # Aumentar o tamanho da fonte para os emojis serem visíveis
+        flag_pt_font = flag_pt_btn.font()
+        flag_pt_font.setPointSize(16)
+        flag_pt_font.setStyleStrategy(flag_pt_font.StyleStrategy.PreferAntialias)
+        flag_pt_btn.setFont(flag_pt_font)
+        flag_pt_btn.setToolTip("Português (PT)")
+        flag_pt_btn.clicked.connect(lambda: self._change_language_with_restart('pt'))
+        lang_layout.addWidget(flag_pt_btn)
+        
+        flag_en_btn = QPushButton("🇬🇧")
+        flag_en_btn.setMaximumWidth(60)
+        flag_en_btn.setMinimumHeight(40)
+        # Aumentar o tamanho da fonte para os emojis serem visíveis
+        flag_en_font = flag_en_btn.font()
+        flag_en_font.setPointSize(16)
+        flag_en_font.setStyleStrategy(flag_en_font.StyleStrategy.PreferAntialias)
+        flag_en_btn.setFont(flag_en_font)
+        flag_en_btn.setToolTip("English (EN)")
+        flag_en_btn.clicked.connect(lambda: self._change_language_with_restart('en'))
+        lang_layout.addWidget(flag_en_btn)
+        
         lang_layout.addStretch()
         lang_grp.setLayout(lang_layout)
         layout.addWidget(lang_grp)
@@ -196,6 +222,58 @@ class SettingsScreen:
 
         # Nota: Qt usa o tema do sistema automaticamente
         layout.addStretch()
+
+    def _change_language_with_restart(self, language_code: str):
+        """Muda a linguagem com confirmação e reinicia a aplicação."""
+        current_lang = self.app.preferences.get_language()
+        
+        # Se a língua já está configurada, não faz nada
+        if current_lang == language_code:
+            return
+        
+        # Mensagens de confirmação em português (a aplicação está em português por padrão)
+        language_names = {
+            'pt': 'Português',
+            'en': 'English'
+        }
+        
+        # Obter os textos na linguagem atual
+        current_language_actual = current_lang
+        if current_language_actual == 'system':
+            from .i18n import get_default_language
+            current_language_actual = get_default_language()
+        
+        # Determinar o texto de confirmação na língua atual
+        if current_language_actual == 'pt':
+            question_text = f"Deseja alterar a língua para {language_names.get(language_code, language_code)} e reiniciar a aplicação?"
+            restart_button = "Alterar e Reiniciar"
+            cancel_button = "Cancelar"
+        else:
+            question_text = f"Do you want to change the language to {language_names.get(language_code, language_code)} and restart the application?"
+            restart_button = "Change and Restart"
+            cancel_button = "Cancel"
+        
+        reply = QMessageBox.question(
+            self.app,
+            "Language" if current_language_actual == 'en' else "Idioma",
+            question_text,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            # Guardar a nova linguagem
+            self.app.preferences.set_language(language_code)
+            
+            # Reiniciar a aplicação usando QProcess para ser mais elegante
+            from PySide6.QtCore import QProcess
+            import sys
+            
+            # Iniciar nova instância
+            QProcess.startDetached(sys.executable, sys.argv)
+            
+            # Fechar a aplicação atual
+            from PySide6.QtWidgets import QApplication
+            QApplication.quit()
 
     def _choose_file(self):
         filename, _ = QFileDialog.getOpenFileName(

@@ -36,7 +36,7 @@ Para Windows e Linux, pode descarregar executáveis pré-compilados:
 - API keys guardadas localmente em `data/preferences.json`
 
 ## Estrutura
-- `gift_test_practice.py`: aplicação principal (QMainWindow)
+- `main.py`: aplicação principal (QMainWindow)
 - `data/constants.py`: constantes da aplicação
 - `data/selection_screen.py`: seleção de categorias
 - `data/question_screen.py`: apresentação de perguntas

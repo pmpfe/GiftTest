@@ -25,7 +25,7 @@ class Preferences:
             self._write_preferences({
                 'last_gift_file': '',
                 'theme': 'default',
-                'language': 'system',  # 'pt', 'en', ou 'system'
+                'language': 'pt',  # 'pt', 'en', ou 'system'
                 'ui': {
                     'main_window_width_percent': 66,
                     'main_window_height_percent': 66,
