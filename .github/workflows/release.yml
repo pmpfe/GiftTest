@@ -119,10 +119,13 @@ jobs:
       - name: Install buildozer and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk
+          sudo apt-get install -y openjdk-17-jdk wget unzip
           python -m pip install --upgrade pip
           pip install buildozer cython
           pip install -r requirements.txt
+          
+          # Accept Android SDK licenses
+          yes | sudo apt-get install -y android-sdk || true
 
       - name: Build Android APK
         run: |
@@ -166,6 +169,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: ls -R
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

@@ -12,13 +12,14 @@ package.domain = org.gifttest
 source.dir = .
 source.include_exts = py,png,jpg,gif,txt,json
 
-# Application version
-version = 0.9.14
+# Application version (sync with setup.py)
+version = 1.0.0
 
 # Application requirements
 # Note: PySide6 Android support requires Qt for Android
 # This spec provides the base structure for Android builds
-requirements = python3,pyside6
+# Additional dependencies may be needed based on app modules used
+requirements = python3,pyside6,pillow
 
 # Permissions needed
 android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
