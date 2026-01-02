@@ -16,7 +16,7 @@ pip install -r requirements.txt
 
 Para Windows e Linux, pode descarregar executáveis pré-compilados:
 
-- **[Últimas Releases →](https://github.com/pmpfe/GiftTest/releases/latest)**
+- **[Última Release →](https://github.com/pmpfe/GiftTest/releases/latest)**
 
 
 ## Funcionalidades
