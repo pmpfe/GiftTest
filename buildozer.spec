@@ -16,13 +16,14 @@ source.include_exts = py,png,jpg,gif,txt,json
 version = 1.0.0
 
 # Application requirements
-# Note: PySide6 Android support requires Qt for Android
-# This spec provides the base structure for Android builds
-# Additional dependencies may be needed based on app modules used
+# IMPORTANT: PySide6 Android support is experimental and limited.
+# PySide6 is primarily designed for desktop platforms.
+# For production Android apps, consider Kivy or BeeWare frameworks.
+# This spec provides the base structure for Android builds.
 requirements = python3,pyside6,pillow
 
-# Permissions needed
-android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
+# Permissions needed (minimal for mobile readiness)
+android.permissions = INTERNET
 
 # Orientation (both portrait and landscape for mobile readiness)
 orientation = all

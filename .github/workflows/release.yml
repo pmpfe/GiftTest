@@ -118,16 +118,17 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Install buildozer and dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk wget unzip
           python -m pip install --upgrade pip
           pip install buildozer cython
           pip install -r requirements.txt
-          
-          # Accept Android SDK licenses
-          yes | sudo apt-get install -y android-sdk || true
 
       - name: Build Android APK
         run: |
