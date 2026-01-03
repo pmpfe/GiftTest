@@ -26,7 +26,7 @@ requirements = python3,pyside6,pillow
 android.permissions = INTERNET
 
 # Orientation (both portrait and landscape for mobile readiness)
-orientation = all
+orientation = landscape,portrait
 
 # Android API target versions
 android.api = 31
