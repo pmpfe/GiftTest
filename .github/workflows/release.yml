@@ -76,6 +76,87 @@ jobs:
           name: windows-binary
           path: GiftTest_x64.exe
 
+  build-android:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    env:
+      ANDROID_PLATFORM: "android-34"
+      ANDROID_BUILD_TOOLS: "35.0.0"
+      ANDROID_NDK_VERSION: "26.1.10909125"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          sdkmanager --version
+          yes | sdkmanager --licenses
+          sdkmanager \
+            "platform-tools" \
+            "platforms;${ANDROID_PLATFORM}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" \
+            "ndk;${ANDROID_NDK_VERSION}"
+
+      - name: Install Python dependencies (host)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install qtpip
+
+      - name: Download Qt for Python Android wheels (arm64)
+        shell: bash
+        run: |
+          mkdir -p android_wheels
+          qtpip download PySide6 --android --arch aarch64 --output-dir android_wheels
+          ls -la android_wheels
+
+      - name: Build Android APK (debug)
+        shell: bash
+        run: |
+          PYSIDE_WHEEL=$(ls android_wheels/PySide6*-android* 2>/dev/null | head -n 1)
+          SHIBOKEN_WHEEL=$(ls android_wheels/shiboken6*-android* 2>/dev/null | head -n 1)
+          echo "Using PySide wheel: $PYSIDE_WHEEL"
+          echo "Using Shiboken wheel: $SHIBOKEN_WHEEL"
+          pyside6-android-deploy \
+            --config-file pysidedeploy.spec \
+            --force \
+            --name "GiftTest" \
+            --wheel-pyside "$PYSIDE_WHEEL" \
+            --wheel-shiboken "$SHIBOKEN_WHEEL" \
+            --sdk-path "$ANDROID_SDK_ROOT" \
+            --ndk-path "$ANDROID_SDK_ROOT/ndk/${ANDROID_NDK_VERSION}" \
+            --extra-ignore-dirs ".venv,.venv-android,dist,build,packaging,perguntas_anatomia" \
+            --verbose
+
+      - name: Collect Android artifacts
+        shell: bash
+        run: |
+          mkdir -p android_artifacts
+          find . -maxdepth 4 -type f \( -name "*.apk" -o -name "*.aab" \) -print -exec cp -v {} android_artifacts/ \;
+          ls -la android_artifacts
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: android_artifacts
+
   # build-macos:
   #   runs-on: macos-15-intel  # Intel for broader compatibility
   #   steps:
@@ -105,41 +186,6 @@ jobs:
   #         name: macos-binary
   #         path: GiftTest_x64
 
-  build-android:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install buildozer and dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install buildozer cython
-          pip install -r requirements.txt
-
-      - name: Build Android APK
-        run: |
-          buildozer android debug
-
-      - name: Upload Android APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: bin/*.apk
-
   source-zip:
     runs-on: ubuntu-latest
     steps:
@@ -163,7 +209,7 @@ jobs:
           path: GiftTest-source.zip
 
   create-release:
-    needs: [build-linux, build-windows, source-zip]
+    needs: [build-linux, build-windows, build-android, source-zip]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -180,4 +226,6 @@ jobs:
             GiftTest_x64.bin
             GiftTest_x64.exe
             GiftTest-source.zip
+            android_artifacts/*.apk
+            android_artifacts/*.aab
           generate_release_notes: true

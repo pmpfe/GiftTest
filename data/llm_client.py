@@ -11,6 +11,8 @@ import urllib.error
 import datetime
 from pathlib import Path
 
+from .app_paths import get_http_log_path
+
 GROQ_BASE = "https://api.groq.com/openai/v1"
 HF_MODELS_LIST = "https://huggingface.co/api/models?pipeline_tag=text-generation&sort=downloads&direction=-1&limit=50"
 HF_INFER_BASE = "https://router.huggingface.co/models"
@@ -34,8 +36,8 @@ class LLMClient:
         self.api_key = "".join(ch for ch in raw_key if 32 <= ord(ch) <= 126)
         self.model = model or ""
         self.system_prompt = system_prompt or ""
-        # Log file in workspace root
-        self._log_file = Path(__file__).resolve().parent.parent / "http_log.txt"
+        # Log file in a writable per-user location (Android and packaged apps).
+        self._log_file = get_http_log_path()
 
     # --- Logging + HTTP helper ---
     def _http_request(

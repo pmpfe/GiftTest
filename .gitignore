@@ -4,6 +4,10 @@ data/preferences.json
 data/test_history.json
 llm_tests.html
 .venv
+/.venv-android/
+/.android-wheels/
+/.buildozer/
+buildozer.spec
 *.gift.txt
 !literatura-classica-50.gift.txt
 .gitbackup.tgz

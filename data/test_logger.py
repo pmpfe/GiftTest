@@ -12,8 +12,17 @@ class TestLogger:
     """Regista resultados dos testes em ficheiro JSON."""
 
     def __init__(self, log_file: str = "data/test_history.json"):
-        self.log_file = Path(log_file)
-        self.log_file.parent.mkdir(exist_ok=True)
+        from .app_paths import get_test_history_path
+
+        default_legacy = Path("data/test_history.json")
+        default_new = get_test_history_path()
+
+        if log_file == str(default_legacy):
+            self.log_file = default_legacy if default_legacy.exists() else default_new
+        else:
+            self.log_file = Path(log_file)
+
+        self.log_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Cria ficheiro se não existir
         if not self.log_file.exists():

@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 BUILD_TARGET=${1:-all}
 DIST_DIR="dist"
-VERSION=$(grep "version=" setup.py | head -1 | grep -oP '"\K[^"]+')
+VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "0.0.0")
 
 echo -e "${YELLOW}Building Gift Test Practice v${VERSION}${NC}"
 

@@ -17,8 +17,20 @@ class Preferences:
     """Gere preferências persistentes da aplicação."""
 
     def __init__(self, pref_file: str = "data/preferences.json"):
-        self.pref_file = Path(pref_file)
-        self.pref_file.parent.mkdir(exist_ok=True)
+        # Prefer a per-user writable location by default.
+        from .app_paths import get_preferences_path
+
+        default_legacy = Path("data/preferences.json")
+        default_new = get_preferences_path()
+
+        if pref_file == str(default_legacy):
+            # If legacy file exists, keep using it for backwards compatibility.
+            # Otherwise use the new per-user location.
+            self.pref_file = default_legacy if default_legacy.exists() else default_new
+        else:
+            self.pref_file = Path(pref_file)
+
+        self.pref_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Cria ficheiro com valores padrão se não existir
         if not self.pref_file.exists():
