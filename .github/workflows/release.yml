@@ -77,6 +77,9 @@ jobs:
           path: GiftTest_x64.exe
 
   build-android:
+    # Disabled for now (Android build currently not working).
+    # Keep the job definition here so it can be re-enabled later.
+    if: ${{ false }}
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -123,7 +126,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p android_wheels
-          qtpip download PySide6 --android --arch aarch64 --output-dir android_wheels
+          cd android_wheels
+          qtpip download PySide6 --android --arch aarch64
           ls -la android_wheels
 
       - name: Build Android APK (debug)
@@ -209,7 +213,8 @@ jobs:
           path: GiftTest-source.zip
 
   create-release:
-    needs: [build-linux, build-windows, build-android, source-zip]
+    # build-android commented out until build works
+    needs: [build-linux, build-windows, source-zip]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -226,6 +231,7 @@ jobs:
             GiftTest_x64.bin
             GiftTest_x64.exe
             GiftTest-source.zip
-            android_artifacts/*.apk
-            android_artifacts/*.aab
+            # Android artifacts disabled while Android build is disabled.
+            # android_artifacts/*.apk
+            # android_artifacts/*.aab
           generate_release_notes: true
