@@ -171,10 +171,24 @@ class HistoryScreen:
             errors_layout = QVBoxLayout()
 
             for i, detail in enumerate(test_data['details'], 1):
-                # Número e categoria
-                detail_label = QLabel(f"{i}. Questão {detail['question_number']} ({detail['category']})")
+                # Linha: [Explicar] + número/categoria
+                header_widget = QWidget()
+                header_layout = QHBoxLayout(header_widget)
+                header_layout.setContentsMargins(0, 0, 0, 0)
+                header_layout.setSpacing(8)
+
+                explain_btn = QPushButton(f"[{tr('Explicar')}] ")
+                explain_btn.setFixedWidth(110)
+                explain_btn.clicked.connect(
+                    lambda checked=False, qnum=detail['question_number']: self._explain_question(qnum)
+                )
+                header_layout.addWidget(explain_btn)
+
+                detail_label = QLabel(f"{i}. {tr('Questão')} {detail['question_number']} ({detail['category']})")
                 detail_label.setStyleSheet("font-weight: bold;")
-                errors_layout.addWidget(detail_label)
+                header_layout.addWidget(detail_label)
+                header_layout.addStretch()
+                errors_layout.addWidget(header_widget)
 
                 # Pergunta
                 errors_layout.addWidget(QLabel(tr("Pergunta:") + f" {detail['question_text']}"))
@@ -188,11 +202,6 @@ class HistoryScreen:
                 correct_label = QLabel(tr("Resposta correta:") + f" {detail['correct_answer']}")
                 correct_label.setStyleSheet("color: green;")
                 errors_layout.addWidget(correct_label)
-
-                # Botão para explicar
-                explain_btn = QPushButton(tr("Ver explicação da pergunta") + f" {detail['question_number']}")
-                explain_btn.clicked.connect(lambda checked, qnum=detail['question_number']: self._explain_question(qnum))
-                errors_layout.addWidget(explain_btn)
 
                 errors_layout.addSpacing(10)
 

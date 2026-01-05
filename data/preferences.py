@@ -67,14 +67,15 @@ class Preferences:
                         'cloudflare': '@cf/meta/llama-3-8b-instruct'
                     },
                     'prompt_template': (
-                        "Por favor explica, com rigor, a resposta certa e "
-                        "as respostas erradas da pergunta em baixo.\\n"
-                        "Usa formatação HTML (tags <p>, <strong>, <ul>, "
-                        "<li>, <a href='...'>) para estruturar a resposta, "
-                        "incluindo links clicáveis se relevante (por exemplo, "
-                        "para artigos científicos ou recursos educacionais)."
+                        "Por favor explica, com rigor, a resposta certa e as respostas erradas da pergunta em baixo.\n"
+                        "Usa formatação HTML (tags <p>, <strong>, <ul>, <li>, <a href='...'>) para estruturar a resposta.\n"
+                        "Inclui links clicáveis relevantes (por exemplo, para artigos científicos ou recursos educativos).\n\n"
+                        "Importante: ao longo da tua resposta, sempre que for relevante ilustrar a resposta, inclui um comentário com 2-4 palavras-chave, no formato\n"
+                        "<!-- IMAGE_KEYWORDS: keyword1, keyword2, ... -->\n\n"
+                        "Inclui um grau de confiança na resposta (global) e um grau de confiança na tua avaliação de cada alternativa."
                     ),
-                    'system_prompt': "És um professor de nível universitário"
+                    'system_prompt': "És um professor de nível universitário",
+                    'image_provider': 'wikimedia'
                 }
             })
 
@@ -138,8 +139,12 @@ class Preferences:
     def get_llm_prompt_template(self) -> str:
         prefs = self._read_preferences()
         default = (
-            "Por favor explica, com rigor, a resposta certa e "
-            "as respostas erradas da pergunta em baixo."
+            "Por favor explica, com rigor, a resposta certa e as respostas erradas da pergunta em baixo.\n"
+            "Usa formatação HTML (tags <p>, <strong>, <ul>, <li>, <a href='...'>) para estruturar a resposta.\n"
+            "Inclui links clicáveis relevantes (por exemplo, para artigos científicos ou recursos educativos).\n\n"
+            "Importante: ao longo da tua resposta, sempre que for relevante ilustrar a resposta, inclui um comentário com 2-4 palavras-chave, no formato\n"
+            "<!-- IMAGE_KEYWORDS: keyword1, keyword2, ... -->\n\n"
+            "Inclui um grau de confiança na resposta (global) e um grau de confiança na tua avaliação de cada alternativa."
         )
         return prefs.get('llm', {}).get('prompt_template', default)
 
@@ -155,6 +160,24 @@ class Preferences:
     def set_llm_system_prompt(self, prompt: str):
         prefs = self._read_preferences()
         prefs.setdefault('llm', {})['system_prompt'] = prompt
+        self._write_preferences(prefs)
+
+    def get_image_provider(self) -> str:
+        """Retorna o provider de imagens ('wikimedia', 'openverse', 'pexels', 'unsplash', 'radiopaedia', 'none')."""
+        prefs = self._read_preferences()
+        provider = prefs.get('llm', {}).get('image_provider', 'wikimedia')
+        try:
+            from .image_enrichment import IMAGE_PROVIDERS
+            if provider not in IMAGE_PROVIDERS:
+                return 'wikimedia'
+        except Exception:
+            pass
+        return provider
+
+    def set_image_provider(self, provider: str):
+        """Define o provider de imagens."""
+        prefs = self._read_preferences()
+        prefs.setdefault('llm', {})['image_provider'] = provider
         self._write_preferences(prefs)
 
     # ---- UI settings ----

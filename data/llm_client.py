@@ -38,6 +38,38 @@ class LLMClient:
         self.system_prompt = system_prompt or ""
         # Log file in a writable per-user location (Android and packaged apps).
         self._log_file = get_http_log_path()
+        # Last HTTP exchange (redacted) for embedding in the UI as an HTML comment.
+        self.last_http_exchange: Optional[dict] = None
+
+    def _redact_headers(self, headers: dict) -> dict:
+        if not headers:
+            return {}
+        redacted = {}
+        for k, v in headers.items():
+            key = str(k)
+            lower = key.lower()
+            if lower in {"authorization", "x-api-key", "api-key", "x-auth-token"}:
+                redacted[key] = "<REDACTED>"
+                continue
+            redacted[key] = v
+        return redacted
+
+    def _redact_url(self, url: str) -> str:
+        try:
+            parts = urllib.parse.urlsplit(url)
+            q = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+            if not q:
+                return url
+            redacted_q = []
+            for k, v in q:
+                if str(k).lower() in {"key", "api_key", "token", "access_token"}:
+                    redacted_q.append((k, "<REDACTED>"))
+                else:
+                    redacted_q.append((k, v))
+            new_query = urllib.parse.urlencode(redacted_q)
+            return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
+        except Exception:
+            return url
 
     # --- Logging + HTTP helper ---
     def _http_request(
@@ -55,6 +87,21 @@ class LLMClient:
             # Request log
             req_headers = dict(req.headers) if hasattr(req, 'headers') else {}
             req_body_str = body.decode('utf-8', errors='replace') if body else ""
+
+            # Capture last exchange for UI (redacted).
+            try:
+                self.last_http_exchange = {
+                    'timestamp': ts,
+                    'request': {
+                        'url': self._redact_url(getattr(req, 'full_url', getattr(req, 'url', ''))),
+                        'method': getattr(req, 'method', 'POST' if body is not None else 'GET'),
+                        'headers': self._redact_headers(req_headers),
+                        'body': req_body_str,
+                    },
+                    'response': None,
+                }
+            except Exception:
+                self.last_http_exchange = None
             log_req = [
                 f"[{ts}] REQUEST",
                 f"URL: {getattr(req, 'full_url', getattr(req, 'url', ''))}",
@@ -71,6 +118,15 @@ class LLMClient:
                 resp_body = resp.read()
                 status = getattr(resp, 'status', getattr(resp, 'code', 0))
                 resp_headers = dict(resp.headers.items()) if hasattr(resp, 'headers') else {}
+
+            try:
+                if isinstance(self.last_http_exchange, dict):
+                    self.last_http_exchange['response'] = {
+                        'status': status,
+                        'headers': self._redact_headers(resp_headers),
+                    }
+            except Exception:
+                pass
 
             # Response log
             resp_body_str = resp_body.decode('utf-8', errors='replace')
@@ -94,6 +150,15 @@ class LLMClient:
             status = getattr(e, 'code', 0)
             err_headers = dict(getattr(e, 'headers', {}).items()) if getattr(e, 'headers', None) else {}
             err_body_str = err_body.decode('utf-8', errors='replace')
+
+            try:
+                if isinstance(self.last_http_exchange, dict):
+                    self.last_http_exchange['response'] = {
+                        'status': status,
+                        'headers': self._redact_headers(err_headers),
+                    }
+            except Exception:
+                pass
             log_err = [
                 f"[{ts}] ERROR",
                 f"Status: {status}",
@@ -596,9 +661,23 @@ class LLMClient:
                 content = cands[0].get("content", {})
                 parts = content.get("parts", [])
                 if parts and isinstance(parts, list):
-                    text = parts[0].get("text", "")
+                    text_parts: list[str] = []
+                    for part in parts:
+                        if isinstance(part, dict):
+                            piece = part.get("text", "")
+                        elif isinstance(part, str):
+                            piece = part
+                        else:
+                            piece = ""
+                        if piece:
+                            text_parts.append(piece)
+                    text = "".join(text_parts)
                     if text:
                         return text
+                # Some Gemini payloads include `content.text` directly
+                fallback_text = content.get("text") if isinstance(content, dict) else None
+                if isinstance(fallback_text, str) and fallback_text.strip():
+                    return fallback_text
             # If no text found, raise error with raw response preview
             raise LLMError(f"Gemini devolveu resposta sem texto: {json.dumps(data)[:300]}")
         except LLMError:

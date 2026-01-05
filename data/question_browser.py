@@ -53,7 +53,7 @@ class QuestionAnswerDialog(QDialog):
     def submit_answer(self):
         selected_id = self.button_group.checkedId()
         if selected_id == -1:
-            QMessageBox.warning(self, "Aviso", "Por favor, selecione uma resposta.")
+            QMessageBox.warning(self, tr("Aviso"), tr("Por favor, selecione uma resposta."))
             return
         self.selected_answer = selected_id
         self.accept()

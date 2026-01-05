@@ -3,13 +3,17 @@ Displays LLM explanations in a rich viewer using QTextBrowser for HTML rendering
 """
 
 import re
+import urllib.request
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QTextEdit, QWidget, QSizePolicy, QComboBox, QTextBrowser
+    QTextEdit, QWidget, QSizePolicy, QComboBox, QTextBrowser, QPlainTextEdit, QSplitter, QProgressBar
 )
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QKeyEvent, QDesktopServices
+from PySide6.QtCore import Qt, QUrl, QByteArray, Slot
+from PySide6.QtGui import QKeyEvent, QDesktopServices, QTextDocument
+from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+from PySide6.QtCore import QTimer
 
 from .llm_client import LLMClient
 from .i18n import tr
@@ -37,11 +41,234 @@ class ZoomableTextBrowser(QTextBrowser):
         super().__init__(parent)
         self._zoom = DEFAULT_ZOOM
         self._base_font_size = self.font().pointSize()
+        self._last_html: str = ""
+        self._net = QNetworkAccessManager(self)
+        self._inflight: dict[str, QNetworkReply] = {}
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.timeout.connect(self._refresh_after_resource_update)
+
+        # Corner loading overlay (animated, non-blocking)
+        self._loading_overlay = QWidget(self.viewport())
+        self._loading_overlay.setObjectName('loadingOverlay')
+        self._loading_overlay.setStyleSheet(
+            "#loadingOverlay { background: rgba(255,255,255,200); border: 1px solid #ccc; border-radius: 4px; }"
+        )
+        overlay_layout = QHBoxLayout(self._loading_overlay)
+        overlay_layout.setContentsMargins(6, 4, 6, 4)
+        overlay_layout.setSpacing(6)
+
+        self._loading_bar = QProgressBar(self._loading_overlay)
+        self._loading_bar.setRange(0, 0)  # indeterminate
+        self._loading_bar.setTextVisible(False)
+        self._loading_bar.setFixedSize(48, 10)
+        overlay_layout.addWidget(self._loading_bar)
+
+        self._loading_label = QLabel(tr("A carregar"), self._loading_overlay)
+        self._loading_label.setStyleSheet("color:#444;")
+        overlay_layout.addWidget(self._loading_label)
+
+        self._loading_overlay.hide()
         if self._base_font_size <= 0:
             self._base_font_size = DEFAULT_FONT_SIZE
         self.setOpenExternalLinks(False)
-        self.setOpenLinks(False)  # Prevent internal navigation
+        self.setOpenLinks(False)
         self.anchorClicked.connect(self._handle_link)
+
+    def setHtml(self, text: str) -> None:
+        self._last_html = text or ""
+        super().setHtml(text)
+
+    def set_loading(self, visible: bool, text: str | None = None) -> None:
+        if text is not None:
+            self._loading_label.setText(text)
+        self._loading_overlay.setVisible(bool(visible))
+        if visible:
+            self._position_loading_overlay()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self._loading_overlay.isVisible():
+            self._position_loading_overlay()
+
+    def _position_loading_overlay(self) -> None:
+        try:
+            self._loading_overlay.adjustSize()
+            margin = 6
+            x = max(margin, self.viewport().width() - self._loading_overlay.width() - margin)
+            y = margin
+            self._loading_overlay.move(x, y)
+        except Exception:
+            pass
+
+    def _show_source_dialog(self) -> None:
+        dlg = QDialog(self)
+        dlg.setWindowTitle(tr("Código fonte"))
+        dlg.setMinimumSize(700, 500)
+
+        layout = QVBoxLayout(dlg)
+
+        editor = QPlainTextEdit()
+        editor.setReadOnly(True)
+        editor.setPlainText(self._last_html or "")
+        layout.addWidget(editor)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        close_btn = QPushButton(tr("Fechar"))
+        close_btn.clicked.connect(dlg.close)
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+
+        dlg.show()
+
+    def contextMenuEvent(self, event):
+        menu = self.createStandardContextMenu()
+        menu.addSeparator()
+        action = menu.addAction(tr("Ver código fonte"))
+        action.triggered.connect(self._show_source_dialog)
+        menu.exec(event.globalPos())
+
+    def loadResource(self, type, name):
+        """Load external resources like images from HTTP URLs."""
+        import os
+        debug_enabled = os.environ.get('GIFTTEST_DEBUG_IMAGES') == '1'
+        debug_file = Path.home() / '.local' / 'share' / 'main.py' / 'qtbrowser_debug.txt'
+        
+        if debug_enabled:
+            try:
+                debug_file.parent.mkdir(parents=True, exist_ok=True)
+                with debug_file.open('a', encoding='utf-8') as f:
+                    f.write(f"\n🔍 loadResource called: type={type}, name={name}\n")
+                    if isinstance(name, QUrl):
+                        f.write(f"   URL string: {name.toString()}\n")
+            except Exception:
+                pass
+        
+        # QTextDocument.ImageResource = 2
+        if type == 2 and isinstance(name, QUrl):
+            url_str = name.toString()
+
+            # Serve prefetched bytes if available
+            try:
+                from .image_enrichment import get_prefetched_image_bytes
+                prefetched = get_prefetched_image_bytes(url_str)
+                if prefetched:
+                    return QByteArray(prefetched)
+            except Exception:
+                pass
+            
+            if debug_enabled:
+                try:
+                    with debug_file.open('a', encoding='utf-8') as f:
+                        f.write(f"   Checking if HTTP/HTTPS...\n")
+                except Exception:
+                    pass
+            
+            # Only load HTTP/HTTPS images
+            if url_str.startswith(('http://', 'https://')):
+                # Async fetch to avoid UI freezes.
+                if url_str not in self._inflight:
+                    try:
+                        req = QNetworkRequest(QUrl(url_str))
+                        req.setRawHeader(b'User-Agent', b'GiftTest/1.0 (educational app)')
+                        # Follow redirects where supported (Qt6 uses RedirectPolicyAttribute)
+                        try:
+                            req.setAttribute(
+                                QNetworkRequest.Attribute.RedirectPolicyAttribute,
+                                QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy,
+                            )
+                        except Exception:
+                            pass
+
+                        reply = self._net.get(req)
+                        self._inflight[url_str] = reply
+                        reply.finished.connect(lambda u=url_str, r=reply: self._on_image_reply_finished(u, r))
+                    except Exception as e:
+                        if debug_enabled:
+                            try:
+                                with debug_file.open('a', encoding='utf-8') as f:
+                                    f.write(f"   ❌ Async request failed: {e}\n")
+                            except Exception:
+                                pass
+                return QByteArray()
+        
+        # Fallback to default
+        return super().loadResource(type, name)
+
+    def _on_image_reply_finished(self, url_str: str, reply: QNetworkReply) -> None:
+        import os
+        debug_enabled = os.environ.get('GIFTTEST_DEBUG_IMAGES') == '1'
+        debug_file = Path.home() / '.local' / 'share' / 'main.py' / 'qtbrowser_debug.txt'
+
+        try:
+            self._inflight.pop(url_str, None)
+        except Exception:
+            pass
+
+        try:
+            if reply.error() != QNetworkReply.NetworkError.NoError:
+                if debug_enabled:
+                    try:
+                        with debug_file.open('a', encoding='utf-8') as f:
+                            f.write(f"   ❌ Network error for {url_str}: {reply.errorString()}\n")
+                    except Exception:
+                        pass
+                reply.deleteLater()
+                return
+
+            data = bytes(reply.readAll())
+            reply.deleteLater()
+            if not data:
+                return
+
+            # Store in shared prefetch cache
+            try:
+                from .image_enrichment import _put_prefetched_image_bytes
+                _put_prefetched_image_bytes(url_str, data)
+            except Exception:
+                pass
+
+            # Add to this document resources
+            try:
+                self.document().addResource(
+                    QTextDocument.ResourceType.ImageResource,
+                    QUrl(url_str),
+                    QByteArray(data),
+                )
+            except Exception:
+                pass
+
+            # Debounce refresh to avoid re-rendering once per image.
+            if not self._refresh_timer.isActive():
+                self._refresh_timer.start(50)
+        except Exception:
+            try:
+                reply.deleteLater()
+            except Exception:
+                pass
+
+    def _refresh_after_resource_update(self) -> None:
+        # Re-apply HTML so QTextBrowser requests the now-cached resources.
+        try:
+            sb = self.verticalScrollBar()
+            pos = sb.value() if sb else 0
+        except Exception:
+            pos = 0
+
+        try:
+            html = self._last_html
+            if html:
+                super().setHtml(html)
+        except Exception:
+            pass
+
+        try:
+            sb = self.verticalScrollBar()
+            if sb:
+                sb.setValue(pos)
+        except Exception:
+            pass
 
     def _handle_link(self, url: QUrl):
         """Open links in external browser."""
@@ -194,19 +421,52 @@ def show_explanation(
     model_layout.addWidget(model_combo)
     left_layout.addLayout(model_layout)
 
+    # Image source combo (non-persistent)
+    image_source_layout = QHBoxLayout()
+    image_source_label = QLabel(tr("Fonte de imagens:"))
+    image_source_combo = QComboBox()
+    try:
+        from .image_enrichment import IMAGE_PROVIDERS
+        for key, info in IMAGE_PROVIDERS.items():
+            image_source_combo.addItem(info.get('name', key), key)
+    except Exception:
+        image_source_combo.addItem('none', 'none')
+
+    # Default selection comes from preferences, but changes here do not persist.
+    try:
+        if hasattr(parent, 'preferences'):
+            pref_key = parent.preferences.get_image_provider()
+            idx = image_source_combo.findData(pref_key)
+            if idx >= 0:
+                image_source_combo.setCurrentIndex(idx)
+    except Exception:
+        pass
+
+    image_source_layout.addWidget(image_source_label)
+    image_source_layout.addWidget(image_source_combo)
+    left_layout.addLayout(image_source_layout)
+
     # Explain button
     explain_btn = QPushButton(tr("Obter explicação"))
     explain_btn.setEnabled(True)  # Always enabled
     left_layout.addWidget(explain_btn)
 
-    # Time label
+    # Time labels
+    time_row = QHBoxLayout()
     time_label = QLabel()
-    time_label.setStyleSheet("color: #666; font-size: 11px;")
+    time_label.setStyleSheet("color: #666;")
     if metadata and 'time' in metadata:
-        time_label.setText(f"Tempo: {metadata['time']:.2f}s")
+        time_label.setText(f"Tempo (resposta): {metadata['time']:.2f}s")
     else:
         time_label.setText("")
-    left_layout.addWidget(time_label)
+
+    images_time_label = QLabel("")
+    images_time_label.setStyleSheet("color: #666;")
+
+    time_row.addWidget(time_label)
+    time_row.addWidget(images_time_label)
+    time_row.addStretch()
+    left_layout.addLayout(time_row)
 
     def update_model_combo():
         current_provider = provider_combo.currentText()
@@ -302,6 +562,15 @@ def show_explanation(
 
     # Use QTextBrowser for HTML rendering
     viewer = ZoomableTextBrowser()
+    images_viewer = ZoomableTextBrowser()
+    images_viewer.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    images_viewer.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+    try:
+        images_viewer.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+    except Exception:
+        pass
+    images_viewer.hide()
+    
     # Simplify HTML for QTextBrowser compatibility
     simplified_html = simplify_html_for_textbrowser(html_content)
     # Wrap with basic styling
@@ -314,9 +583,20 @@ def show_explanation(
     </html>
     """
     viewer.setHtml(html_with_style)
-    layout.addWidget(viewer)
+
+    content_splitter = QSplitter(Qt.Orientation.Horizontal)
+    content_splitter.setChildrenCollapsible(False)
+    content_splitter.addWidget(viewer)
+    content_splitter.addWidget(images_viewer)
+    content_splitter.setStretchFactor(0, 3)
+    content_splitter.setStretchFactor(1, 1)
+    try:
+        content_splitter.setSizes([int(dialog.width() * 0.75), int(dialog.width() * 0.25)])
+    except Exception:
+        pass
+    layout.addWidget(content_splitter)
     layout.setStretchFactor(header, 0)
-    layout.setStretchFactor(viewer, 1)
+    layout.setStretchFactor(content_splitter, 1)
 
     # Close button
     btn_layout = QHBoxLayout()
@@ -333,5 +613,5 @@ def show_explanation(
         pass
     dialog.show()
 
-    # Return dialog and viewer to allow updates
-    return dialog, viewer, time_label, explain_btn
+    # Return dialog and widgets to allow updates
+    return dialog, viewer, images_viewer, content_splitter, time_label, images_time_label, explain_btn, image_source_combo

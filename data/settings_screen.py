@@ -103,7 +103,7 @@ class SettingsScreen:
         flag_pt_font.setPointSize(16)
         flag_pt_font.setStyleStrategy(flag_pt_font.StyleStrategy.PreferAntialias)
         flag_pt_btn.setFont(flag_pt_font)
-        flag_pt_btn.setToolTip("Português (PT)")
+        flag_pt_btn.setToolTip(tr("Português (PT)"))
         flag_pt_btn.clicked.connect(lambda: self._change_language_with_restart('pt'))
         lang_layout.addWidget(flag_pt_btn)
         
@@ -115,7 +115,7 @@ class SettingsScreen:
         flag_en_font.setPointSize(16)
         flag_en_font.setStyleStrategy(flag_en_font.StyleStrategy.PreferAntialias)
         flag_en_btn.setFont(flag_en_font)
-        flag_en_btn.setToolTip("English (EN)")
+        flag_en_btn.setToolTip(tr("Inglês (EN)"))
         flag_en_btn.clicked.connect(lambda: self._change_language_with_restart('en'))
         lang_layout.addWidget(flag_en_btn)
         
@@ -210,7 +210,7 @@ class SettingsScreen:
         layout.addSpacing(15)
 
         # Histórico
-        history_grp = QGroupBox("Histórico")
+        history_grp = QGroupBox(tr("Histórico"))
         hist_layout = QHBoxLayout()
         reset_btn = QPushButton(tr("Reiniciar Histórico de Testes"))
         reset_btn.clicked.connect(self.app.clear_history)
@@ -322,7 +322,7 @@ class SettingsScreen:
         layout.addSpacing(10)
 
         # Model selection
-        model_grp = QGroupBox("Modelo")
+        model_grp = QGroupBox(tr("Modelo"))
         model_layout = QHBoxLayout()
 
         model_layout.addWidget(QLabel(tr("Modelo:")))
@@ -341,7 +341,7 @@ class SettingsScreen:
         layout.addSpacing(10)
 
         # Prompt template
-        prompt_grp = QGroupBox("Prompt")
+        prompt_grp = QGroupBox(tr("Prompt"))
         prompt_layout = QVBoxLayout()
 
         prompt_layout.addWidget(QLabel(tr("Template usado antes da pergunta:")))
@@ -366,6 +366,45 @@ class SettingsScreen:
 
         system_grp.setLayout(system_layout)
         layout.addWidget(system_grp)
+        layout.addSpacing(8)
+
+        # Image provider selection
+        image_grp = QGroupBox(tr("Imagens Ilustrativas"))
+        image_layout = QVBoxLayout()
+
+        image_layout.addWidget(QLabel(tr("Adicionar imagens ilustrativas às explicações:")))
+        
+        image_combo_layout = QHBoxLayout()
+        image_combo_layout.addWidget(QLabel(tr("Fonte de imagens:")))
+        
+        self.image_provider_combo = QComboBox()
+        from .image_enrichment import IMAGE_PROVIDERS
+        for key, info in IMAGE_PROVIDERS.items():
+            self.image_provider_combo.addItem(f"{info['name']} - {info['description']}", key)
+        
+        # Set current selection
+        current_provider = prefs.get_image_provider()
+        for i in range(self.image_provider_combo.count()):
+            if self.image_provider_combo.itemData(i) == current_provider:
+                self.image_provider_combo.setCurrentIndex(i)
+                break
+        
+        image_combo_layout.addWidget(self.image_provider_combo)
+        image_combo_layout.addStretch()
+        image_layout.addLayout(image_combo_layout)
+        
+        # Instruções
+        instructions_label = QLabel(
+            tr("Para obter imagens relevantes, peça ao modelo LLM que inclua no HTML:\n"
+               "<!-- IMAGE_KEYWORDS: palavra1, palavra2 -->\n"
+               "As palavras-chave serão usadas para buscar imagens relacionadas.")
+        )
+        instructions_label.setWordWrap(True)
+        instructions_label.setStyleSheet("color: #666; font-size: 11px; padding: 8px; background: #f5f5f5; border-radius: 4px;")
+        image_layout.addWidget(instructions_label)
+
+        image_grp.setLayout(image_layout)
+        layout.addWidget(image_grp)
         layout.addSpacing(8)
 
         # Test area
@@ -446,7 +485,7 @@ class SettingsScreen:
             client = LLMClient(prov, key)
             models = client.list_models()
             if not models:
-                QMessageBox.warning(self.app, "Aviso", "Nenhum modelo encontrado para este provedor.")
+                QMessageBox.warning(self.app, tr("Aviso"), tr("Nenhum modelo encontrado para este provedor."))
                 return
             self.models_combo.clear()
 
@@ -469,11 +508,11 @@ class SettingsScreen:
                 else:
                     self.models_combo.setCurrentIndex(0)
         except LLMError as e:
-            QMessageBox.critical(self.app, "Erro", str(e))
+            QMessageBox.critical(self.app, tr("Erro"), str(e))
         except Exception as e:
             import traceback
             traceback.print_exc()
-            QMessageBox.critical(self.app, "Erro", f"Erro inesperado: {e}")
+            QMessageBox.critical(self.app, tr("Erro"), tr("Erro inesperado: {0}").format(e))
 
     def _test_llm(self):
         # Save first then try a small generation
@@ -484,9 +523,9 @@ class SettingsScreen:
         try:
             client = LLMClient(prov, key, model)
             text = client.generate("Diz 'OK' se estás a funcionar.")
-            QMessageBox.information(self.app, "LLM OK", f"Resposta: {text[:300]}...")
+            QMessageBox.information(self.app, tr("LLM OK"), tr("Resposta: {0}...").format(text[:300]))
         except Exception as e:
-            QMessageBox.critical(self.app, "Erro", f"Falha ao testar LLM: {e}")
+            QMessageBox.critical(self.app, tr("Erro"), tr("Falha ao testar LLM: {0}").format(e))
 
     def _save(self):
         prefs = self.app.preferences
@@ -550,4 +589,8 @@ class SettingsScreen:
         system_prompt = self.system_prompt_text.toPlainText().strip()
         if system_prompt:
             prefs.set_llm_system_prompt(system_prompt)
-        QMessageBox.information(self.app, "Guardado", "Configurações guardadas com sucesso.")
+        # Image provider
+        if hasattr(self, 'image_provider_combo'):
+            image_provider = self.image_provider_combo.currentData()
+            prefs.set_image_provider(image_provider)
+        QMessageBox.information(self.app, tr("Guardado"), tr("Configurações guardadas com sucesso."))

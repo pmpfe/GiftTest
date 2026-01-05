@@ -13,7 +13,7 @@ buildozer.spec
 .gitbackup.tgz
 .git
 #logs
-gift2boolean_error.log
+*.log
 http_log.txt
 perguntas_anatomia/*
 
@@ -63,3 +63,4 @@ wheels/
 .installed.cfg
 *.egg
 
+:memory:

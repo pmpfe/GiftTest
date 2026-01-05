@@ -2,8 +2,20 @@
 Ecrã de apresentação de perguntas.
 """
 
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                               QPushButton, QRadioButton, QGroupBox, QButtonGroup, QMessageBox)
+import html
+
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QRadioButton,
+    QGroupBox,
+    QButtonGroup,
+    QMessageBox,
+    QCheckBox,
+)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from .i18n import tr
@@ -78,6 +90,15 @@ class QuestionScreen:
         main_layout.addWidget(options_grp)
         main_layout.addSpacing(15)
 
+        # Opção persistente durante o teste: corrigir após erro
+        if not hasattr(self.app, 'correct_me_if_wrong'):
+            self.app.correct_me_if_wrong = False
+        correct_me_cb = QCheckBox(tr("Corrigir-me se estiver errado"))
+        correct_me_cb.setChecked(bool(self.app.correct_me_if_wrong))
+        correct_me_cb.toggled.connect(lambda checked: setattr(self.app, 'correct_me_if_wrong', bool(checked)))
+        main_layout.addWidget(correct_me_cb)
+        main_layout.addSpacing(10)
+
         # Botões
         button_widget = QWidget()
         button_layout = QHBoxLayout(button_widget)
@@ -151,8 +172,113 @@ class QuestionScreen:
         question = self.app.selected_questions[self.app.current_question_index]
         self.app.user_answers[question.number] = answer
 
+        # Se ativado e a resposta estiver errada, mostra diálogo de correção antes de avançar
+        if getattr(self.app, 'correct_me_if_wrong', False):
+            correct_idx = question.get_correct_answer()
+            user_was_correct = (answer != -1 and correct_idx is not None and answer == correct_idx)
+            if not user_was_correct:
+                # Evita empilhar múltiplos diálogos se o utilizador clicar várias vezes
+                existing = getattr(self.app, '_active_correction_dialog', None)
+                try:
+                    if existing is not None and existing.isVisible():
+                        existing.raise_()
+                        existing.activateWindow()
+                        return
+                except Exception:
+                    pass
+
+                user_answer_text = (
+                    question.options[answer]['text']
+                    if answer is not None and answer >= 0 and answer < len(question.options)
+                    else tr('Sem resposta')
+                )
+                correct_answer_text = (
+                    question.options[correct_idx]['text']
+                    if correct_idx is not None and 0 <= correct_idx < len(question.options)
+                    else 'N/A'
+                )
+                def _advance():
+                    try:
+                        dlg = getattr(self.app, '_active_correction_dialog', None)
+                        if dlg is not None:
+                            dlg.close()
+                    except Exception:
+                        pass
+                    self.app.current_question_index += 1
+                    self.show()
+
+                self._show_correction_dialog_async(
+                    question_obj=question,
+                    user_answer_text=user_answer_text,
+                    correct_answer_text=correct_answer_text,
+                    on_ok=_advance,
+                )
+                return
+
         self.app.current_question_index += 1
         self.show()
+
+    def _show_correction_dialog_async(
+        self,
+        question_obj,
+        user_answer_text: str,
+        correct_answer_text: str,
+        on_ok,
+    ):
+        """Mostra um diálogo de correção não-modal.
+
+        Não bloqueia a janela de explicação; o teste só prossegue quando o utilizador clicar em OK.
+        """
+        user_html = html.escape(user_answer_text)
+        correct_html = html.escape(correct_answer_text)
+        question_number = html.escape(str(getattr(question_obj, 'number', '')))
+
+        msg = QMessageBox(self.app)
+        msg.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        msg.setWindowModality(Qt.WindowModality.NonModal)
+        msg.setModal(False)
+        msg.setWindowTitle(tr("Correção") + (f": {question_number}" if question_number else ""))
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setTextFormat(Qt.TextFormat.RichText)
+        msg.setText(
+            """
+            <div style='font-family: sans-serif;'>
+              <div style='color: red; margin-bottom: 8px;'>✖ <b>{ua_lbl}</b> {ua}</div>
+              <div style='color: green;'>✔ <b>{ca_lbl}</b> {ca}</div>
+            </div>
+            """.format(
+                ua_lbl=html.escape(tr("Sua resposta:")),
+                ua=user_html,
+                ca_lbl=html.escape(tr("Resposta correta:")),
+                ca=correct_html,
+            )
+        )
+
+        ok_btn = msg.addButton(tr("OK"), QMessageBox.ButtonRole.AcceptRole)
+        explain_btn = msg.addButton(tr("Explicar"), QMessageBox.ButtonRole.ActionRole)
+        msg.setDefaultButton(ok_btn)
+
+        self.app._active_correction_dialog = msg
+
+        def _cleanup():
+            if getattr(self.app, '_active_correction_dialog', None) is msg:
+                self.app._active_correction_dialog = None
+
+        def _on_clicked(button):
+            if button == explain_btn:
+                self.app.explain_question(
+                    question_obj=question_obj,
+                    user_answer=user_answer_text,
+                    user_was_correct=False,
+                )
+                return
+            if button == ok_btn:
+                _cleanup()
+                on_ok()
+
+        msg.buttonClicked.connect(_on_clicked)
+        msg.finished.connect(lambda _code: _cleanup())
+        msg.show()
 
     def previous_question(self):
         """Volta para a pergunta anterior."""

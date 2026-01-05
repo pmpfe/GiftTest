@@ -24,15 +24,24 @@ Para Windows e Linux, pode descarregar executáveis pré-compilados:
 - Explicação de perguntas via LLM (Groq, Hugging Face, Gemini, Mistral, Perplexity, OpenRouter, Cloudflare)
 - Configurações para ficheiro GIFT, provedor/modelo LLM e prompt
 - Resultados com estatísticas e histórico
+- Correção imediata opcional durante o teste ("Corrigir-me se estiver errado")
+- Acesso rápido a "Explicar" a partir do histórico/resultados
 - Renderização HTML com QTextBrowser (leve e sem dependências extra)
 - Zoom no conteúdo da explicação (Ctrl + roda do rato, Ctrl +/-, Ctrl + 0)
 - Links abrem automaticamente no browser externo
+- Imagens ilustrativas opcionais nas explicações (coluna lateral) com seleção de fonte:
+	- Wikimedia Commons, Openverse, Radiopaedia (scraping best-effort), Unsplash Source
+	- Pexels (requer `PEXELS_API_KEY`)
+	- Sem imagens
 
 ## Configuração LLM
 - Aceder a "Configurações" → LLM
 - Configurar uma API_KEY (precisa de registo prévio, quase todos oferecem acessos free tier)
 - Providers: Groq, Hugging Face, Google Gemini, Mistral, Perplexity, OpenRouter, Cloudflare
 - Prompt padrão gera HTML formatado
+- Para enriquecer com imagens, o LLM pode incluir no HTML comentários no formato:
+	- `<!-- IMAGE_KEYWORDS: palavra1, palavra2 -->`
+	- A fonte de imagens pode ser definida em Configurações (e também alterada no diálogo da explicação sem persistir)
 - API keys guardadas localmente em `data/preferences.json`
 
 ## Estrutura
@@ -41,8 +50,10 @@ Para Windows e Linux, pode descarregar executáveis pré-compilados:
 - `data/selection_screen.py`: seleção de categorias
 - `data/question_screen.py`: apresentação de perguntas
 - `data/results_screen.py`: resultados e estatísticas
+- `data/history_screen.py`: histórico detalhado de testes
 - `data/settings_screen.py`: configurações (ficheiro, LLM)
 - `data/explanation_viewer.py`: visualizador HTML
+- `data/image_enrichment.py`: extração de keywords e pesquisa de imagens (opcional)
 - `data/gift_parser.py`: parser de ficheiros GIFT
 - `data/llm_client.py`: cliente LLM (múltiplos providers)
 - `data/preferences.py`: persistência de configurações

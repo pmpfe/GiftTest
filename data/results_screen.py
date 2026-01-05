@@ -1,10 +1,18 @@
-"""
-Ecrã de resultados do teste.
-"""
+"""Ecrã de resultados do teste."""
 
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                               QPushButton, QTextEdit, QGroupBox)
-from PySide6.QtGui import QFont, QColor
+import html
+
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QTextBrowser,
+    QGroupBox,
+)
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QFont
 from .i18n import tr
 
 
@@ -69,8 +77,8 @@ class ResultsScreen:
                 wrong_details.append({
                     'question_number': question.number,
                     'question_text': question.text,
-                    'user_answer': question.options[user_answer]['text'] if user_answer >= 0 else 'Sem resposta',
-                    'correct_answer': question.options[correct_answer]['text'] if correct_answer is not None else 'N/A',
+                    'user_answer': question.options[user_answer]['text'] if user_answer >= 0 else tr('Sem resposta'),
+                    'correct_answer': question.options[correct_answer]['text'] if correct_answer is not None else tr('N/A'),
                     'category': question.category
                 })
 
@@ -129,38 +137,60 @@ class ResultsScreen:
         errors_grp = QGroupBox(tr("Perguntas Erradas"))
         errors_layout = QVBoxLayout()
 
-        text_widget = QTextEdit()
+        # Mostra os detalhes num viewer clicável: '*' abre explicação da pergunta
+        text_widget = QTextBrowser()
+        text_widget.setOpenLinks(False)
         text_widget.setReadOnly(True)
+        text_widget.anchorClicked.connect(self._on_wrong_detail_link_clicked)
 
+        blocks: list[str] = []
         for i, detail in enumerate(wrong_details, 1):
-            # Botão para explicar antes do bloco
-            explain_btn = QPushButton(tr("Ver explicação da pergunta") + f" {detail['question_number']}")
-            explain_btn.clicked.connect(lambda checked, qnum=detail['question_number']: self._explain_question(qnum))
-            errors_layout.addWidget(explain_btn)
+            qnum = html.escape(str(detail.get('question_number', '')))
+            category = html.escape(str(detail.get('category', '')))
+            question_text = html.escape(str(detail.get('question_text', '')))
+            user_answer = html.escape(str(detail.get('user_answer', '')))
+            correct_answer = html.escape(str(detail.get('correct_answer', '')))
 
-            # Número e categoria
-            text_widget.setFontWeight(QFont.Weight.Bold)
-            text_widget.insertPlainText(f"{i}. " + tr("Questão") + f" {detail['question_number']}")
-            text_widget.setFontWeight(QFont.Weight.Normal)
-            text_widget.insertPlainText(f" ({detail['category']})\n")
+            blocks.append(
+                """
+                <div style='margin-bottom: 12px;'>
+                  <div>
+                    <a href='explain:{qnum}' style='text-decoration:none; font-weight:bold;'>*</a>
+                    <b>{idx}. {question_lbl} {qnum}</b> ({category})
+                  </div>
+                  <div style='margin-left: 12px; margin-top: 6px;'>
+                    <div><b>{q_lbl}</b> {q_text}</div>
+                    <div style='color: red;'><b>{ua_lbl}</b> {ua}</div>
+                    <div style='color: green;'><b>{ca_lbl}</b> {ca}</div>
+                  </div>
+                </div>
+                """.format(
+                    qnum=qnum,
+                    idx=i,
+                    question_lbl=html.escape(tr("Questão")),
+                    category=category,
+                    q_lbl=html.escape(tr("Pergunta:")),
+                    q_text=question_text,
+                    ua_lbl=html.escape(tr("Sua resposta:")),
+                    ua=user_answer,
+                    ca_lbl=html.escape(tr("Resposta correta:")),
+                    ca=correct_answer,
+                )
+            )
 
-            # Pergunta
-            text_widget.insertPlainText("   " + tr("Pergunta:") + f" {detail['question_text']}\n")
-
-            # Resposta do utilizador (vermelho)
-            text_widget.setTextColor(QColor("red"))
-            text_widget.insertPlainText("   " + tr("Sua resposta:") + f" {detail['user_answer']}\n")
-            text_widget.setTextColor(QColor("black"))
-
-            # Resposta correta (verde)
-            text_widget.setTextColor(QColor("green"))
-            text_widget.insertPlainText("   " + tr("Resposta correta:") + f" {detail['correct_answer']}\n\n")
-            text_widget.setTextColor(QColor("black"))
-
+        text_widget.setHtml("""<div style='font-family: sans-serif;'>{}</div>""".format("".join(blocks)))
         errors_layout.addWidget(text_widget)
         errors_grp.setLayout(errors_layout)
         layout.addWidget(errors_grp)
         layout.addSpacing(15)
+
+    def _on_wrong_detail_link_clicked(self, url: QUrl):
+        """Abre explicação ao clicar no '*' em cada resultado."""
+        raw = url.toString()
+        if raw.startswith('explain:'):
+            qnum = raw.split(':', 1)[1]
+            if qnum:
+                self._explain_question(qnum)
 
     def _explain_question(self, question_number):
         """Explica uma pergunta específica."""

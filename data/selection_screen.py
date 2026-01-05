@@ -360,7 +360,7 @@ class SelectionScreen:
         flag_pt_font = flag_pt_btn.font()
         flag_pt_font.setPointSize(18)
         flag_pt_btn.setFont(flag_pt_font)
-        flag_pt_btn.setToolTip("Português")
+        flag_pt_btn.setToolTip(tr("Português"))
         flag_pt_btn.clicked.connect(lambda: self._change_language_from_main('pt'))
         bottom_layout.addWidget(flag_pt_btn)
         
@@ -370,7 +370,7 @@ class SelectionScreen:
         flag_en_font = flag_en_btn.font()
         flag_en_font.setPointSize(18)
         flag_en_btn.setFont(flag_en_font)
-        flag_en_btn.setToolTip("English")
+        flag_en_btn.setToolTip(tr("Inglês"))
         flag_en_btn.clicked.connect(lambda: self._change_language_from_main('en'))
         bottom_layout.addWidget(flag_en_btn)
 

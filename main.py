@@ -39,25 +39,68 @@ class LLMWorker(QThread):
         self.client = client
         self.prompt = prompt
         self._cancelled = False
+        # Ensure thread is deleted when finished
+        self.finished.connect(self.deleteLater)
+        self.error.connect(self.deleteLater)
 
     def cancel(self):
         self._cancelled = True
+        # Disconnect auto-delete to handle manually
+        self.finished.disconnect(self.deleteLater)
+        self.error.disconnect(self.deleteLater)
+        if self.isRunning():
+            if not self.wait(1000):  # Wait max 1 second
+                # If still running, terminate (last resort)
+                self.terminate()
+                self.wait()
+        # Ensure deletion
+        self.deleteLater()
 
     def run(self):
         try:
             if self._cancelled:
-                self.deleteLater()
                 return
             result = self.client.generate(self.prompt)
             if not self._cancelled:
                 self.finished.emit(result)
-            else:
-                self.deleteLater()
         except Exception as e:
             if not self._cancelled:
                 self.error.emit(str(e))
-            else:
-                self.deleteLater()
+
+
+class ImagesWorker(QThread):
+    """Worker thread for image search to avoid blocking UI."""
+    finished = Signal(int, object, float, str)  # job_id, groups, seconds, provider
+
+    def __init__(self, job_id: int, keywords_list: tuple[str, ...], provider: str):
+        super().__init__()
+        self.job_id = job_id
+        self.keywords_list = keywords_list
+        self.provider = provider
+        self._cancelled = False
+        self.finished.connect(self.deleteLater)
+
+    def cancel(self):
+        self._cancelled = True
+        # Disconnect auto-delete to handle manually
+        self.finished.disconnect(self.deleteLater)
+        if self.isRunning():
+            self.wait(200)
+        # Ensure deletion
+        self.deleteLater()
+
+    def run(self):
+        try:
+            if self._cancelled:
+                return
+            from data.image_enrichment import fetch_image_groups
+            groups, seconds = fetch_image_groups(self.keywords_list, provider=self.provider)
+            if not self._cancelled:
+                self.finished.emit(self.job_id, groups, float(seconds), self.provider)
+        except Exception:
+            # Treat unexpected exceptions as an empty result set
+            if not self._cancelled:
+                self.finished.emit(self.job_id, tuple((tuple(), 'worker_exception') for _ in self.keywords_list), 0.0, self.provider)
 
 
 class GIFT_TestApp(QMainWindow):
@@ -81,6 +124,8 @@ class GIFT_TestApp(QMainWindow):
         self.selected_questions = []
         self.current_question_index = 0
         self.user_answers = {}  # {question_number: answer_index}
+        # Estado por-teste (não persiste entre testes)
+        self.correct_me_if_wrong = False
         self.current_gift_file = None
         self._llm_worker = None  # Keep reference to thread
 
@@ -122,11 +167,6 @@ class GIFT_TestApp(QMainWindow):
         """Handle application close, ensuring threads are properly cleaned up."""
         if self._llm_worker and self._llm_worker.isRunning():
             self._llm_worker.cancel()
-            # Wait a short time for the thread to finish
-            if not self._llm_worker.wait(1000):  # 1 second timeout
-                # If still running, terminate (last resort)
-                self._llm_worker.terminate()
-                self._llm_worker.wait()
         super().closeEvent(event)
 
     def load_questions(self, gift_file: str = None):
@@ -278,7 +318,7 @@ class GIFT_TestApp(QMainWindow):
     def start_quick_test(self):
         """Inicia um teste rápido com perguntas aleatórias de todas as categorias."""
         if not self.parser or not self.parser.questions:
-            QMessageBox.warning(self, "Aviso", "Nenhuma pergunta carregada.")
+            QMessageBox.warning(self, tr("Aviso"), tr("Nenhuma pergunta carregada."))
             return
 
         all_questions = self.parser.questions
@@ -288,6 +328,7 @@ class GIFT_TestApp(QMainWindow):
         # Reset
         self.current_question_index = 0
         self.user_answers = {}
+        self.correct_me_if_wrong = False
 
         # Mostra primeira pergunta
         self.show_question()
@@ -364,7 +405,7 @@ class GIFT_TestApp(QMainWindow):
         """
 
         # Open dialog and keep references
-        dialog, viewer_widget, time_label, explain_btn = show_explanation(
+        dialog, viewer_widget, images_viewer_widget, content_splitter, time_label, images_time_label, explain_btn, image_source_combo = show_explanation(
             self,
             tr("Explicação") + f": {qnum}",
             loading_html,
@@ -379,8 +420,240 @@ class GIFT_TestApp(QMainWindow):
         # Keep references
         dialog_ref = [dialog]
         viewer_ref = [viewer_widget]
+        images_viewer_ref = [images_viewer_widget]
+        splitter_ref = [content_splitter]
         time_label_ref = [time_label]
+        images_time_label_ref = [images_time_label]
         explain_btn_ref = [explain_btn]
+        image_source_combo_ref = [image_source_combo]
+
+        keywords_list_ref: list[tuple[str, ...]] = [tuple()]
+        image_groups_ref: list[tuple] = [tuple()]
+        has_result_ref = [False]
+        splitter_last_sizes: list[list[int] | None] = [None]
+        images_visible_ref = [False]
+        images_job_id_ref = [0]
+        images_worker_ref = [None]
+
+        try:
+            from PySide6.QtCore import QTimer
+            _splitter_resize_timer = QTimer(dialog_ref[0])
+            _splitter_resize_timer.setSingleShot(True)
+        except Exception:
+            _splitter_resize_timer = None
+        def _apply_splitter_visibility(show_images: bool):
+            try:
+                if not splitter_ref[0]:
+                    return
+                if not images_viewer_ref[0]:
+                    return
+
+                # Only act on transitions (do not fight user drags)
+                if show_images and not images_visible_ref[0]:
+                    images_viewer_ref[0].show()
+                    # Restore previous sizes if we have them, else default 75/25
+                    if splitter_last_sizes[0]:
+                        splitter_ref[0].setSizes(splitter_last_sizes[0])
+                    else:
+                        w = splitter_ref[0].width() or (dialog_ref[0].width() if dialog_ref[0] else 0)
+                        if w > 0:
+                            splitter_ref[0].setSizes([int(w * 0.75), int(w * 0.25)])
+                    images_visible_ref[0] = True
+
+                if (not show_images) and images_visible_ref[0]:
+                    # Save current sizes so user adjustments persist
+                    try:
+                        splitter_last_sizes[0] = splitter_ref[0].sizes()
+                    except Exception:
+                        splitter_last_sizes[0] = None
+                    images_viewer_ref[0].hide()
+                    w = splitter_ref[0].width() or (dialog_ref[0].width() if dialog_ref[0] else 0)
+                    if w > 0:
+                        splitter_ref[0].setSizes([w, 0])
+                    images_visible_ref[0] = False
+            except Exception:
+                pass
+
+
+        def _render_images_column_from_cached_groups():
+            if not has_result_ref[0]:
+                return
+
+            try:
+                image_provider = image_source_combo_ref[0].currentData()
+            except Exception:
+                image_provider = self.preferences.get_image_provider()
+
+            keywords_list = keywords_list_ref[0]
+
+            groups = image_groups_ref[0]
+            try:
+                if not groups or (len(groups) != len(keywords_list)):
+                    return
+            except Exception:
+                return
+
+            show_images = bool(keywords_list) and image_provider != 'none'
+            _apply_splitter_visibility(show_images)
+
+            if not show_images:
+                try:
+                    if images_viewer_ref[0] and hasattr(images_viewer_ref[0], 'setHtml'):
+                        images_viewer_ref[0].setHtml("")
+                except Exception:
+                    pass
+                return
+
+            # Force image width in pixels to avoid QTextBrowser clipping/ignoring % widths.
+            target_w = None
+            try:
+                if images_viewer_ref[0]:
+                    vw = images_viewer_ref[0].viewport().width()
+                    if vw and vw > 30:
+                        target_w = max(30, vw - 12)
+            except Exception:
+                target_w = None
+
+            from data.image_enrichment import build_images_column_html_from_groups
+            images_html = build_images_column_html_from_groups(
+                keywords_list,
+                groups,
+                target_image_width_px=target_w,
+            )
+
+            try:
+                if images_viewer_ref[0] and hasattr(images_viewer_ref[0], 'setHtml'):
+                    if show_images:
+                        images_with_style = f"""
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body {{
+                                    font-family: Arial, Helvetica, sans-serif;
+                                    line-height: 1.3;
+                                    margin: 0;
+                                    padding: 6px;
+                                    overflow-x: hidden;
+                                    text-align: center;
+                                }}
+                                img {{
+                                    max-width: 100%;
+                                    height: auto;
+                                }}
+                            </style>
+                        </head>
+                        <body>
+                            {images_html}
+                        </body>
+                        </html>
+                        """
+                        images_viewer_ref[0].setHtml(images_with_style)
+                    else:
+                        images_viewer_ref[0].setHtml("")
+            except Exception:
+                pass
+
+
+        def _start_images_fetch_for_current_source():
+            """Fetches image groups in a background thread; never blocks the UI."""
+            if not has_result_ref[0]:
+                return
+
+            try:
+                image_provider = image_source_combo_ref[0].currentData()
+            except Exception:
+                image_provider = self.preferences.get_image_provider()
+
+            keywords_list = keywords_list_ref[0]
+            show_images = bool(keywords_list) and image_provider != 'none'
+            _apply_splitter_visibility(show_images)
+
+            if not show_images:
+                try:
+                    if images_viewer_ref[0] and hasattr(images_viewer_ref[0], 'setHtml'):
+                        images_viewer_ref[0].setHtml("")
+                        if hasattr(images_viewer_ref[0], 'set_loading'):
+                            images_viewer_ref[0].set_loading(False)
+                except Exception:
+                    pass
+                try:
+                    if images_time_label_ref[0]:
+                        images_time_label_ref[0].setText("")
+                except Exception:
+                    pass
+                return
+
+            # Clear old content and show per-pane loading overlay
+            try:
+                if images_viewer_ref[0] and hasattr(images_viewer_ref[0], 'setHtml'):
+                    images_viewer_ref[0].setHtml("")
+                if images_viewer_ref[0] and hasattr(images_viewer_ref[0], 'set_loading'):
+                    images_viewer_ref[0].set_loading(True, tr("A carregar"))
+            except Exception:
+                pass
+
+            images_job_id_ref[0] += 1
+            job_id = images_job_id_ref[0]
+
+            # Cancel any running worker
+            try:
+                if images_worker_ref[0] is not None and images_worker_ref[0].isRunning():
+                    images_worker_ref[0].cancel()
+            except Exception:
+                pass
+
+            worker = ImagesWorker(job_id, keywords_list, image_provider)
+            images_worker_ref[0] = worker
+
+            def _on_images_finished(done_job_id, groups, seconds, provider_done):
+                if done_job_id != images_job_id_ref[0]:
+                    return
+                try:
+                    current_provider = image_source_combo_ref[0].currentData()
+                except Exception:
+                    current_provider = self.preferences.get_image_provider()
+                if provider_done != current_provider:
+                    return
+
+                image_groups_ref[0] = groups
+                try:
+                    if images_time_label_ref[0]:
+                        images_time_label_ref[0].setText(f" | Tempo (imagens): {float(seconds):.2f}s")
+                except Exception:
+                    pass
+
+                _render_images_column_from_cached_groups()
+
+                try:
+                    if images_viewer_ref[0] and hasattr(images_viewer_ref[0], 'set_loading'):
+                        images_viewer_ref[0].set_loading(False)
+                except Exception:
+                    pass
+
+            worker.finished.connect(_on_images_finished)
+            worker.start()
+
+
+
+
+        # Refresh images when the user changes the image source combo (non-persistent)
+        try:
+            image_source_combo_ref[0].currentIndexChanged.connect(lambda *_: _start_images_fetch_for_current_source())
+        except Exception:
+            pass
+
+        # When user drags the splitter, debounce rebuild to fit the new column width (no refetch).
+        try:
+            if _splitter_resize_timer is not None:
+                _splitter_resize_timer.timeout.connect(lambda: _render_images_column_from_cached_groups())
+                splitter_ref[0].splitterMoved.connect(lambda *_: _splitter_resize_timer.start(120))
+            else:
+                splitter_ref[0].splitterMoved.connect(lambda *_: _render_images_column_from_cached_groups())
+        except Exception:
+            pass
+
 
         start_time = time.time()
 
@@ -399,7 +672,7 @@ class GIFT_TestApp(QMainWindow):
             duration = end_time - start_time
 
             # Update time label
-            time_text = f"Tempo: {duration:.2f}s"
+            time_text = f"Tempo (resposta): {duration:.2f}s"
             try:
                 if time_label_ref[0]:
                     time_label_ref[0].setText(time_text)
@@ -407,12 +680,53 @@ class GIFT_TestApp(QMainWindow):
                 # Dialog was closed or widget destroyed
                 pass
 
-            # Wrap plaintext in monospace HTML if no HTML tags detected
-            if not ("<p>" in result or "<div" in result or "<html" in result or "<ul" in result):
-                escaped = result.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-                html = f"<html><body><pre style='white-space:pre-wrap;font-family:monospace;'>{escaped}</pre></body></html>"
-            else:
-                html = result
+            # Parse text + IMAGE_KEYWORDS without fetching images
+            from data.image_enrichment import split_explanation_text_and_keywords
+            text_html, image_blocks, keywords_list = split_explanation_text_and_keywords(result)
+
+            # Embed HTTP request/response details in an HTML comment (view-source only).
+            def _safe_html_comment_text(s: str) -> str:
+                if s is None:
+                    return ''
+                s = str(s)
+                # Avoid invalid sequences in HTML comments.
+                s = s.replace('--', '- -')
+                s = s.replace('\x00', '')
+                return s
+
+            llm_debug_comment = ''
+            try:
+                import json as _json
+                from data.image_enrichment import is_html_content
+
+                client = None
+                try:
+                    client = getattr(self._llm_worker, 'client', None)
+                except Exception:
+                    client = None
+
+                payload = {
+                    'provider': provider,
+                    'model': model,
+                    'request': None,
+                    'response': None,
+                }
+                if client is not None and getattr(client, 'last_http_exchange', None):
+                    ex = client.last_http_exchange
+                    if isinstance(ex, dict):
+                        payload['request'] = (ex.get('request') or None)
+                        payload['response'] = (ex.get('response') or None)
+
+                if not is_html_content(result):
+                    payload['plaintext_body'] = result
+
+                debug_json = _safe_html_comment_text(_json.dumps(payload, ensure_ascii=False))
+                llm_debug_comment = f'<!-- llm_http_debug: {debug_json} -->\n'
+            except Exception:
+                llm_debug_comment = ''
+
+            keywords_list_ref[0] = keywords_list
+            has_result_ref[0] = True
 
             # Update viewer content
             try:
@@ -432,16 +746,24 @@ class GIFT_TestApp(QMainWindow):
                         </style>
                     </head>
                     <body>
-                        {html}
+                        {llm_debug_comment}{text_html}
                     </body>
                     </html>
                     """
                     viewer_ref[0].setHtml(html_with_style)
+                    try:
+                        if hasattr(viewer_ref[0], 'set_loading'):
+                            viewer_ref[0].set_loading(False)
+                    except Exception:
+                        pass
                 elif viewer_ref[0]:  # QTextEdit fallback
-                    viewer_ref[0].setPlainText(re.sub(r"<[^>]+>", "", html))
+                    viewer_ref[0].setPlainText(re.sub(r"<[^>]+>", "", text_html))
             except (RuntimeError, AttributeError):
                 # Dialog was closed or widget destroyed, ignore
                 pass
+
+            # Kick off async image search after rendering the answer
+            _start_images_fetch_for_current_source()
 
             # Re-enable button
             try:
@@ -457,17 +779,41 @@ class GIFT_TestApp(QMainWindow):
 
             error_html = f"""
             <div style='color:red; padding:20px; font-family:sans-serif;'>
-                <h3>Erro na geração</h3>
+                <h3>{tr("Erro na geração")}</h3>
                 <p>{err_msg}</p>
             </div>
             """
             try:
                 if viewer_ref[0] and hasattr(viewer_ref[0], 'setHtml'):
                     viewer_ref[0].setHtml(error_html)
+                    try:
+                        if hasattr(viewer_ref[0], 'set_loading'):
+                            viewer_ref[0].set_loading(False)
+                    except Exception:
+                        pass
                 elif viewer_ref[0]:
                     viewer_ref[0].setPlainText(err_msg)
             except (RuntimeError, AttributeError):
                 pass
+
+            # Hide/clear images column and timing on error
+            try:
+                if images_viewer_ref[0] and hasattr(images_viewer_ref[0], 'setHtml'):
+                    images_viewer_ref[0].setHtml("")
+                    images_viewer_ref[0].hide()
+                    try:
+                        if hasattr(images_viewer_ref[0], 'set_loading'):
+                            images_viewer_ref[0].set_loading(False)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            try:
+                if images_time_label_ref[0]:
+                    images_time_label_ref[0].setText("")
+            except Exception:
+                pass
+            _apply_splitter_visibility(False)
 
             # Re-enable button
             try:
@@ -493,9 +839,47 @@ class GIFT_TestApp(QMainWindow):
                     time_label_ref[0].setText(tr("A gerar") + "...")
             except:
                 pass
+
+            # Reset images UI while loading
+            try:
+                if images_viewer_ref[0] and hasattr(images_viewer_ref[0], 'setHtml'):
+                    images_viewer_ref[0].setHtml("")
+                    images_viewer_ref[0].hide()
+            except Exception:
+                pass
+            try:
+                if images_time_label_ref[0]:
+                    images_time_label_ref[0].setText("")
+            except Exception:
+                pass
+            keywords_list_ref[0] = tuple()
+            has_result_ref[0] = False
+            _apply_splitter_visibility(False)
+
+            # Per-pane loading indicator for the answer pane
+            try:
+                if viewer_ref[0] and hasattr(viewer_ref[0], 'set_loading'):
+                    viewer_ref[0].set_loading(True, tr("A carregar"))
+            except Exception:
+                pass
             self._llm_worker.finished.connect(on_success)
             self._llm_worker.error.connect(on_error)
             self._llm_worker.start()
+
+        # Cleanup worker when dialog closes
+        def on_dialog_destroyed():
+            if hasattr(self, '_llm_worker') and self._llm_worker and self._llm_worker.isRunning():
+                self._llm_worker.cancel()
+            try:
+                if images_worker_ref[0] is not None and images_worker_ref[0].isRunning():
+                    images_worker_ref[0].cancel()
+                    images_worker_ref[0].wait(1000)
+                elif images_worker_ref[0] is not None:
+                    images_worker_ref[0].wait(1000)
+            except Exception:
+                pass
+        
+        dialog.destroyed.connect(on_dialog_destroyed)
 
         # Start initial worker
         generate_explanation()
@@ -548,6 +932,7 @@ class GIFT_TestApp(QMainWindow):
         # Reset
         self.current_question_index = 0
         self.user_answers = {}
+        self.correct_me_if_wrong = False
 
         # Mostra primeira pergunta
         self.show_question()
@@ -569,8 +954,8 @@ class GIFT_TestApp(QMainWindow):
         if answer == -1:
             response = QMessageBox.question(
                 self,
-                "Aviso",
-                "Não selecionou nenhuma resposta. Continuar mesmo assim?",
+                tr("Aviso"),
+                tr("Não selecionou nenhuma resposta. Continuar mesmo assim?"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if response != QMessageBox.StandardButton.Yes:

@@ -6,12 +6,12 @@
 - The app already targets lightweight UI components (e.g., QTextBrowser for HTML rendering).
 
 ## General coding principles
-- Keep solutions **simple and readable**. Prefer straightforward code over clever abstractions.
+- Keep solutions **simple and readable**. Prefer straightforward code over clever abstractions. 
 - Make changes **surgically**: modify the smallest area needed; avoid unrelated refactors.
 - Prefer existing project patterns and structure:
   - UI screens belong in `data/*_screen.py`.
   - Parsing/logic lives in `data/` modules (e.g., `data/gift_parser.py`).
-- Avoid adding new dependencies unless absolutely necessary.
+- Avoid adding new dependencies unless absolutely necessary and confirming with project owner.
 
 ## UI/UX constraints (important)
 - Keep the UI **minimal and consistent** so it can be reused on **mobile platforms** later.
