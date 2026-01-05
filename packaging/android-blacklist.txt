@@ -1,0 +1,20 @@
+# python-for-android blacklist patterns (fnmatch)
+# This project is Widgets-only (no QML). Removing QML/QtQuick payload reduces APK size a lot.
+# Disable by setting PRUNE_QT_QML=0 when running packaging/build-android.sh.
+
+# Remove all QML modules/resources shipped in the PySide6 wheel
+PySide6/Qt/qml/*
+
+# Remove Qt QML/QtQuick shared libraries (not needed for Widgets-only apps)
+PySide6/Qt/lib/libQt6Qml*
+PySide6/Qt/lib/libQt6Quick*
+PySide6/Qt/lib/libQt6Quick3D*
+PySide6/Qt/lib/libQt6QuickControls2*
+PySide6/Qt/lib/libQt6QuickTemplates2*
+PySide6/Qt/lib/libQt6QuickParticles*
+PySide6/Qt/lib/libQt6QuickWidgets*
+PySide6/Qt/lib/libQt6ShaderTools*
+
+# Optional extras commonly pulled in via QML
+PySide6/Qt/lib/libQt6Labs*
+PySide6/Qt/lib/libQt6VirtualKeyboard*
